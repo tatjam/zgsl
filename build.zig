@@ -1,5 +1,4 @@
 const std = @import("std");
-
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -16,23 +15,36 @@ pub fn build(b: *std.Build) void {
     const config_file = config_gen_step.addOutputFileArg("config.h");
     _ = config_gen_step.addOutputDirectoryArg("cfiles");
 
-    const gls_lib = b.addStaticLibrary(.{
+    const symlink_gen_tool = b.addExecutable(.{
+        .name = "symlink_gen",
+        .root_source_file = b.path("src/symlink_gen.zig"),
+        .target = b.host
+    });
+
+    const symlink_gen_step = b.addRunArtifact(symlink_gen_tool);
+    // Inside this folder, a "gsl/" directory is created that contains symlinks
+    // to all other gsl files, as done by default by a Makefile
+    symlink_gen_step.addDirectoryArg(upstream.path(""));
+    const gsl_files = symlink_gen_step.addOutputDirectoryArg("gsl_holder");
+    
+    const gsl_lib = b.addStaticLibrary(.{
         .name = "gsl",
         .optimize = optimize,
         .target = target
     });
-    gls_lib.linkLibC();
+    gsl_lib.linkLibC();
 
 
     // All source files in gls
-    gls_lib.addCSourceFiles(.{
+    gsl_lib.addCSourceFiles(.{
         .root = upstream.path(""),
         .files = &.{
             "blas/blas.c"
         }
     });
-    gls_lib.addIncludePath(upstream.path(""));
-    gls_lib.addIncludePath(config_file.dirname());
+    gsl_lib.addIncludePath(upstream.path(""));
+    gsl_lib.addIncludePath(config_file.dirname());
+    gsl_lib.addIncludePath(gsl_files);
 
     const lib = b.addStaticLibrary(.{
         .name = "zgsl",
@@ -41,7 +53,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    lib.linkLibrary(gls_lib);
+    lib.linkLibrary(gsl_lib);
 
     b.installArtifact(lib);
 
