@@ -58,7 +58,6 @@ pub fn build(b: *std.Build) void {
     headers_dir.step.dependOn(&wf.step);
     headers_dir.step.dependOn(&symlink_gen_step.step);
 
-
     const lib = b.addStaticLibrary(.{
         .name = "zgsl",
         .root_source_file = b.path("src/root.zig"),
@@ -70,6 +69,7 @@ pub fn build(b: *std.Build) void {
     lib.step.dependOn(&headers_dir.step);
     lib.linkLibrary(gsl_lib);
 
+    b.installArtifact(gsl_lib);
     b.installArtifact(lib);
 
     const lib_unit_tests = b.addTest(.{
