@@ -7,14 +7,18 @@ pub fn isGsl(haystack: []const u8) bool {
 }
 
 // Recursively (TODO: Danger!) links all gsl files to the gsl directory
+// TODO: We actually copy the files, this is because otherwise we can't later 
+// on use zig's features to include those as a build artefact!
+// (This results in slight waste of hard drive space)
 pub fn linkAllGslFiles(alloc: std.mem.Allocator, b: std.fs.Dir, target: std.fs.Dir) !void {
         var iter = b.iterate();
         while(try iter.next()) |entry| {
             if(entry.kind == .file and isGsl(entry.name)) {
-                const tgt = try b.realpathAlloc(alloc, entry.name);
-                defer alloc.free(tgt);
-                try target.symLink(tgt, entry.name,
-                    .{ .is_directory = false });
+                //const tgt = try b.realpathAlloc(alloc, entry.name);
+                //defer alloc.free(tgt);
+                //try target.symLink(tgt, entry.name,
+                //    .{ .is_directory = false });
+				try b.copyFile(entry.name, target, entry.name, .{});
             } else if(entry.kind == .directory) {
                 // Recurse
                 const ndir = try b.openDir(entry.name, .{.iterate = true, .no_follow = true});

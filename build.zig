@@ -27,7 +27,7 @@ pub fn build(b: *std.Build) void {
     // to all other gsl files, as done by default by a Makefile
     symlink_gen_step.addDirectoryArg(upstream.path(""));
     const gsl_files = symlink_gen_step.addOutputDirectoryArg("gsl_holder");
-    
+
     const gsl_lib = b.addStaticLibrary(.{
         .name = "gsl",
         .optimize = optimize,
@@ -44,6 +44,20 @@ pub fn build(b: *std.Build) void {
     gsl_lib.addIncludePath(upstream.path(""));
     gsl_lib.addIncludePath(config_file.dirname());
     gsl_lib.addIncludePath(gsl_files);
+    
+    // Copy gsl headers, if the user wants to use those directly
+    const wf = b.addWriteFiles();
+    _ = wf.addCopyDirectory(gsl_files, "include", 
+        .{.include_extensions = &[_][]const u8 {".h"}});
+
+    const headers_dir = b.addInstallDirectory(.{
+        .source_dir = wf.getDirectory(),
+        .install_dir = .prefix,
+        .install_subdir = ""
+    });
+    headers_dir.step.dependOn(&wf.step);
+    headers_dir.step.dependOn(&symlink_gen_step.step);
+
 
     const lib = b.addStaticLibrary(.{
         .name = "zgsl",
@@ -52,6 +66,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    lib.step.dependOn(&config_gen_step.step);
+    lib.step.dependOn(&headers_dir.step);
     lib.linkLibrary(gsl_lib);
 
     b.installArtifact(lib);
