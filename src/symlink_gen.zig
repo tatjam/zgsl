@@ -13,7 +13,6 @@ pub fn linkAllGslFiles(alloc: std.mem.Allocator, b: std.fs.Dir, target: std.fs.D
             if(entry.kind == .file and isGsl(entry.name)) {
                 const tgt = try b.realpathAlloc(alloc, entry.name);
                 defer alloc.free(tgt);
-                std.log.info("link {s} to {s}", .{tgt, entry.name});
                 try target.symLink(tgt, entry.name,
                     .{ .is_directory = false });
             } else if(entry.kind == .directory) {
