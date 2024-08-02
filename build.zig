@@ -46,7 +46,7 @@ pub fn build(b: *std.Build) void {
     gsl_lib.addIncludePath(gsl_files);
     
     // Copy gsl headers, if the user wants to use those directly
-    const wf = b.addWriteFiles();
+    const wf = b.addNamedWriteFiles("gsl_include");
     _ = wf.addCopyDirectory(gsl_files, "include", 
         .{.include_extensions = &[_][]const u8 {".h"}});
 
@@ -891,7 +891,6 @@ const gsl_sources = [_][]const u8 {
     "statistics/select.c",
     "statistics/skew.c",
     "statistics/Sn.c",
-    "statistics/test.c",
     "statistics/test_nist.c",
     "statistics/test_robust.c",
     "statistics/trmean.c",
@@ -941,8 +940,6 @@ const gsl_sources = [_][]const u8 {
     "wavelet/haar.c",
     "wavelet/wavelet.c",
 
-    "gsl-histogram.c", 
-    "gsl-randist.c",
     "version.c"
 
 
