@@ -16,17 +16,18 @@ pub fn build(b: *std.Build) void {
     const config_file = config_gen_step.addOutputFileArg("config.h");
     _ = config_gen_step.addOutputDirectoryArg("cfiles");
 
-    const symlink_gen_tool = b.addExecutable(.{
-        .name = "symlink_gen",
-        .root_source_file = b.path("src/symlink_gen.zig"),
+    const header_gen_tool = b.addExecutable(.{
+        .name = "header_gen",
+        .root_source_file = b.path("src/header_gen.zig"),
         .target = b.host
     });
 
-    const symlink_gen_step = b.addRunArtifact(symlink_gen_tool);
-    // Inside this folder, a "gsl/" directory is created that contains symlinks
-    // to all other gsl files, as done by default by a Makefile
-    symlink_gen_step.addDirectoryArg(upstream.path(""));
-    const gsl_files = symlink_gen_step.addOutputDirectoryArg("gsl_holder");
+    const header_gen_step = b.addRunArtifact(header_gen_tool);
+    // Inside this folder, a "gsl/" directory is created that contains copies
+    // of all other gsl files, as done by default by a Makefile
+    // (Note that GSL actually makes symlinks)
+    header_gen_step.addDirectoryArg(upstream.path(""));
+    const gsl_files = header_gen_step.addOutputDirectoryArg("gsl_holder");
 
     const gsl_lib = b.addStaticLibrary(.{
         .name = "gsl",
@@ -56,7 +57,7 @@ pub fn build(b: *std.Build) void {
         .install_subdir = ""
     });
     headers_dir.step.dependOn(&wf.step);
-    headers_dir.step.dependOn(&symlink_gen_step.step);
+    headers_dir.step.dependOn(&header_gen_step.step);
 
     const lib = b.addStaticLibrary(.{
         .name = "zgsl",
