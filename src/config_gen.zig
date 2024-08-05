@@ -29,8 +29,11 @@ pub fn main() !void {
     // strings (with the s!)
     // sys_stat, sys_types, unistd
     // ieee arithmetic interface
+    // TODO: Make GSL_COMPLEX_LEGACY and HAVE_INLINE optional!
 	try fout.writeAll(
     \\  #define HAVE_C99_INLINE 1
+    \\  #define HAVE_INLINE 1
+    \\  #define GSL_COMPLEX_LEGACY 1
     \\  #define HAVE_COMPLEX_H 1
     \\  #define HAVE_DECL_ACOSH 1
     \\  #define HAVE_DECL_ASINH 1
@@ -51,7 +54,7 @@ pub fn main() !void {
     \\  #define HAVE_MEMCPY 1
     \\  #define HAVE_MEMMOVE 1
     \\  #define HAVE_PRINTF_LONGDOUBLE 1
-    \\  #define hAVE_STDINT_H 1
+    \\  #define HAVE_STDINT_H 1
     \\  #define HAVE_STDIO_H 1
     \\  #define HAVE_STDLIB_H 1
     \\  #define HAVE_STRDUP 1

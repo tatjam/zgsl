@@ -6,6 +6,8 @@ pub fn build(b: *std.Build) void {
 
     const upstream = b.dependency("gsl", .{});
 
+    // Config generation 
+    
     const config_gen_tool = b.addExecutable(.{
         .name = "config_gen",
         .root_source_file = b.path("src/config_gen.zig"),
@@ -15,6 +17,8 @@ pub fn build(b: *std.Build) void {
     const config_gen_step = b.addRunArtifact(config_gen_tool);
     const config_file = config_gen_step.addOutputFileArg("config.h");
     _ = config_gen_step.addOutputDirectoryArg("cfiles");
+
+    // Header generation
 
     const header_gen_tool = b.addExecutable(.{
         .name = "header_gen",
@@ -29,13 +33,14 @@ pub fn build(b: *std.Build) void {
     header_gen_step.addDirectoryArg(upstream.path(""));
     const gsl_files = header_gen_step.addOutputDirectoryArg("gsl_holder");
 
+    // Static GSL library
+
     const gsl_lib = b.addStaticLibrary(.{
         .name = "gsl",
         .optimize = optimize,
         .target = target
     });
     gsl_lib.linkLibC();
-
 
     // All source files in gls
     gsl_lib.addCSourceFiles(.{
@@ -45,6 +50,8 @@ pub fn build(b: *std.Build) void {
     gsl_lib.addIncludePath(upstream.path(""));
     gsl_lib.addIncludePath(config_file.dirname());
     gsl_lib.addIncludePath(gsl_files);
+
+    // GSL header files
     
     // Copy gsl headers, if the user wants to use those directly
     const wf = b.addNamedWriteFiles("gsl_include");
@@ -59,6 +66,8 @@ pub fn build(b: *std.Build) void {
     headers_dir.step.dependOn(&wf.step);
     headers_dir.step.dependOn(&header_gen_step.step);
 
+    // zgsl static library
+
     const lib = b.addStaticLibrary(.{
         .name = "zgsl",
         .root_source_file = b.path("src/root.zig"),
@@ -72,6 +81,8 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(gsl_lib);
     b.installArtifact(lib);
+
+    // Unit testing and ZLS check
 
     const lib_unit_tests = b.addTest(.{
         .root_source_file = b.path("src/root.zig"),
