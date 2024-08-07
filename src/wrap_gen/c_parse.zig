@@ -1,11 +1,5 @@
 const std = @import("std");
 
-// We use a simple state machine to parse the GSL headers
-// THIS IS NOT A GENERAL PURPOSE C PARSER! It's only valid for the
-// very simple subset of C used in GSL headers
-// (for example, if any "raw" function pointer is present, this will break!)
-// Also, memory is simply leaked, so make sure to free the whole allocator passed
-
 const ParsedCFunction = struct {
 	name: [] u8,
 	rettype: [] u8,
@@ -15,129 +9,198 @@ const ParsedCFunction = struct {
 	doc: [] u8,
 };
 
-const StateMachine = enum {
-	HEADER,
-	DOC,
-	RET_TYPE,
-	FUNC_NAME,
-	ARGS,
-	SEEK_NEXT,
-	FINISH
-};
+// Trims and removes macros
+pub fn preprocess(alloc: std.mem.Allocator, data: [] const u8) ![]const u8 {
+	// At most, out is as big as the input file
+	var out: []u8 = try alloc.alloc(u8, data.len);
+	var opos: usize = 0;
 
-pub fn advance_until_str(pos: *usize, data: [] const u8, needle: [] const u8) bool {
-	var in_track: usize = 0;
-	while(pos.* < data.len) {
-		if(data[pos.*] == needle[in_track]) {
-			in_track += 1;
+	// Iterate over data line by line
+	var it = std.mem.splitAny(u8, data, "\n");
+	while(it.next()) |x| {
+		if(std.mem.startsWith(u8, x, "#")) {
+			continue;
 		}
-		
-		if(in_track == needle.len) return true;
-
-		pos.* += 1;
+		const xt = std.mem.trim(u8, x, " \t");
+		std.mem.copyForwards(u8, out[opos..(opos + xt.len)], xt);
+		opos += xt.len;
+		out[opos] = '\n';
+		opos += 1;
 	}
 
-	return false;
+	return out[0..opos];
 }
 
-// Assumes cursor is at the start of a C function def, and parses until the definition ends
-pub fn advance_c_ret_type(pos: *usize, data: [] const u8) !void {
-	// We actually advance until the last " " before "("
-	var open_par_pos = pos.*;
-	if(!advance_until_str(&open_par_pos, data, "(")) {
-		return error.InvalidFunction;
+// Separates the source in blocks, ie, sections separated by more than one
+// line break (ie, atleast one empty line)
+pub fn block_separate(alloc: std.mem.Allocator, data: []const u8) !std.ArrayList(std.ArrayList(u8)) {
+	var out = std.ArrayList(std.ArrayList(u8)).init(alloc);
+	var acc = std.ArrayList(u8).init(alloc);
+
+	var last_empty: usize = 0;
+
+	var it = std.mem.splitAny(u8, data, "\n");
+	while(it.next()) |x| {
+		if(x.len == 0) {
+			// Empty line
+			last_empty += 1;
+			continue;
+		}
+
+		if(last_empty >= 2) {
+			// Save previous buffer
+			try out.append(try acc.clone());
+			try acc.resize(0);
+			last_empty = 0;
+		}
+
+		// Append to the accumulator
+		try acc.appendSlice(x);
+		try acc.append('\n');
 	}
 
-	// Now find the last space before "("
-	var last_pos = pos.*;
-	var next_pos = pos.*;
-
-	while(next_pos < open_par_pos) {
-		last_pos = next_pos;
-		
-		if(!advance_until_str(&next_pos, data, " ")) {
-			return error.InvalidFunction;
-		}
-	}
-
-	// last_pos now points to the last space before "(", which delimits the type
-	pos.* = last_pos;
-
-}
-
-// flavor0 files are our favorite. Every function is documented,
-// and includes exceptions that it may throw
-pub fn parse_c_flavor0(alloc: std.mem.Allocator, data: []const u8) !std.ArrayList(ParsedCFunction) {
-	var st: StateMachine = .HEADER;
-	var pos: usize = 0;
-	var out = std.ArrayList(ParsedCFunction).init(alloc);
-	var cur_symbol: ParsedCFunction = undefined;
-
-	while(st != .FINISH) {
-		if(st == .HEADER) {
-			std.log.info("ENTER .HEADER", .{});
-			// Wait for __BEGIN_DECLS
-			if(!advance_until_str(&pos, data, "__BEGIN_DECLS")) {
-				return error.InvalidHeader;
-			}
-
-			// Move to first function docs
-			if(!advance_until_str(&pos, data, "/*")) {
-				return error.InvalidHeader;
-			}
-
-			st = .DOC;
-
-		} else if(st == .DOC) {
-			std.log.info("ENTER .DOC", .{});
-			// Save location of start of doc 
-			const start_doc = pos;
-
-			// And move to its end
-			if(!advance_until_str(&pos, data, "*/")) {
-				return error.UnfinishedDoc;
-			}
-
-			cur_symbol.doc = try alloc.alloc(u8, pos - start_doc);
-			std.mem.copyForwards(u8, cur_symbol.doc, data[start_doc..pos]);
-			
-			st = .RET_TYPE;
-		} else if(st == .RET_TYPE) {
-			std.log.info("ENTER .RET_TYPE", .{});
-			const start_ret = pos;
-
-			try advance_c_ret_type(&pos, data);
-
-			cur_symbol.rettype = try alloc.alloc(u8, pos - start_ret);
-			std.mem.copyForwards(u8, cur_symbol.rettype, data[start_ret..pos]);
-
-			st = .FUNC_NAME;
-		} else if(st == .FUNC_NAME) {
-			std.log.info("ENTER .FUNC_NAME", .{});
-			const start_name = pos;
-
-			if(!advance_until_str(&pos, data, "(")) {
-				return error.InvalidFunction;
-			}
-
-			cur_symbol.name = try alloc.alloc(u8, pos - start_name);
-			std.mem.copyForwards(u8, cur_symbol.name, data[start_name..pos]);
-
-			st = .ARGS;
-		} else if(st == .ARGS) {
-			std.log.info("ENTER .ARGS", .{});
-
-		} else if(st == .SEEK_NEXT) {
-			std.log.info("ENTER .SEEK_NEXT", .{});
-
-			try out.append(cur_symbol);
-		}
+	// Save acc if it's not empty
+	if(acc.items.len != 0) {
+		try out.append(acc);
 	}
 
 	return out;
 }
 
-// Similar to before, but 
-pub fn parse_c_flavor1(alloc: std.mem.Allocator, data: [] const u8) !std.ArrayList(ParsedCFunction) {
+// Returns the number of characters parsed as doc string
+pub fn parse_doc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFunction) !usize {
+	var parsed: usize = 0;
+	if(std.mem.startsWith(u8, block, "/*"))
+	{
+		// Extract doc string and exceptions
+		const excpt_loc = std.mem.indexOf(u8,block, "exceptions: ");
+		// Doc up to */ is how much we parse (+3 = */\n)
+		parsed = std.mem.indexOf(u8, block, "*/") orelse return error.BadDoc;
+		parsed += 3;
+		
+		const eloc = if(excpt_loc) |excpt| excpt else parsed;
+		
+		// Doc up to exceptions is docstring
+		var lines_it = std.mem.splitAny(u8, block[0..eloc], "\n");
+		// Upper bound
+		to.doc = try alloc.alloc(u8, eloc);
+		var actually_written: usize = 0;
 
+		while(lines_it.next()) |line| {
+			const trim = std.mem.trimLeft(u8, line, "/ *");
+			std.mem.copyForwards(u8, to.doc[actually_written..(actually_written + trim.len)], trim);
+			actually_written += trim.len;
+			if(trim.len != 0) {
+				to.doc[actually_written] = '\n';
+				actually_written += 1;
+			}
+		}
+
+		to.doc = try alloc.realloc(to.doc, actually_written);
+
+	}
+
+
+	return parsed;
+}
+
+pub fn parse_fnc_ret_and_name(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFunction) !usize {
+	const open_par = std.mem.indexOf(u8, block, "(") orelse return 0;
+	const last_space = std.mem.lastIndexOf(u8, block[0..open_par], " ") orelse return 0;
+
+	to.rettype = try alloc.alloc(u8, last_space);
+	to.name = try alloc.alloc(u8, open_par - last_space - 1);
+
+	std.mem.copyForwards(u8, to.rettype, block[0..last_space]);
+	std.mem.copyForwards(u8, to.name, block[(last_space + 1)..open_par]);
+
+	// +1 because the args start without the parenthesis
+	return open_par + 1;
+}
+
+pub fn parse_fnc_argument(alloc: std.mem.Allocator, block: []const u8, 
+	to: *ParsedCFunction, first: bool) !usize {
+	// Very similar strategy to before, but using comma 
+	// Note that no raw function pointers are used in GSL (they are namespaced)
+	// and thus we can simply use commas. Otherwise, we would need to count parentheses
+	if(block.len == 0) return 0;
+	if(block[0] == ';') return 0;
+
+	const comma = std.mem.indexOf(u8, block, ",");
+	const close_par = std.mem.indexOf(u8, block, ")");
+	const end = 
+		if ((comma orelse block.len) > (close_par orelse block.len)) 
+			(close_par orelse return 0) 
+		else 
+			(comma orelse return 0);
+
+	const last_space = std.mem.lastIndexOf(u8, block[0..end], " ") orelse return 0;
+
+	if(!first) {
+		to.arg_types = try alloc.realloc(to.arg_types, to.arg_types.len + 1);
+		to.arg_names = try alloc.realloc(to.arg_names, to.arg_names.len + 1);
+	}
+
+	to.arg_types[to.arg_types.len - 1] = try alloc.alloc(u8, last_space);
+	to.arg_names[to.arg_names.len - 1] = try alloc.alloc(u8, end - last_space - 1);
+
+	std.mem.copyForwards(u8, to.arg_types[to.arg_types.len - 1], block[0..last_space]);
+	std.mem.copyForwards(u8, to.arg_names[to.arg_names.len - 1], block[(last_space + 1)..end]);
+
+	// +1 because the args start without the comma
+	return end + 1;
+}
+
+// Returns the number of characters parsed as the function
+pub fn parse_fnc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFunction) !usize {
+	// First parse the return type and function name
+	var p = try parse_fnc_ret_and_name(alloc, block, to);
+	// After return type and function name come the arguments, which are done 
+	// iteratively
+	var done = false;
+	var first = true;
+
+	// Allocate one arg for now
+	to.arg_names = try alloc.alloc([] u8, 1);
+	to.arg_types = try alloc.alloc([] u8, 1);
+
+	while(!done) {
+		const pnum = try parse_fnc_argument(alloc, block[p..], to, first);
+		if(pnum == 0) {
+			done = true;
+		}
+		p += pnum;
+		first = false;
+	}
+
+	// ;\n
+	return if(p != 0) p + 2 else 0;
+}
+
+pub fn parse_block(alloc: std.mem.Allocator, block: []const u8) ![] ParsedCFunction {
+	var out = try alloc.alloc(ParsedCFunction, 1);
+
+	var p = try parse_doc(alloc, block, &out[0]);
+	// Now, parse functions until exhaustion
+	// They all inherit the doc string from the first one
+	var done = false;
+	var first = true;
+
+	while(!done) {
+		if(!first) {
+			out = try alloc.realloc(out, out.len + 1);
+			out[out.len - 1].doc = out[0].doc;
+			out[out.len - 1].exceptions = out[0].exceptions;
+		}
+		const np = try parse_fnc(alloc, block[p..], &out[out.len - 1]);
+		if(np == 0 or p == block.len) {
+			done = true;
+			out = try alloc.realloc(out, out.len - 1);
+		} 
+		
+		p += np;
+		first = false;
+	}
+
+	return out;
 }
