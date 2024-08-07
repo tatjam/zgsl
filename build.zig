@@ -66,6 +66,7 @@ pub fn build(b: *std.Build) void {
     headers_dir.step.dependOn(&wf.step);
     headers_dir.step.dependOn(&header_gen_step.step);
 
+
     // zgsl static library
 
     const lib = b.addStaticLibrary(.{
@@ -81,6 +82,22 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(gsl_lib);
     b.installArtifact(lib);
+    
+    // Wrapper generation
+    const wrapper_gen_tool = b.addExecutable(.{
+        .name = "wrapper_gen",
+        .root_source_file = b.path("src/wrapper_gen.zig"),
+        .target = b.host
+    });
+
+    //for(&wrapper_pairs) |*pair| {
+    //    const wrap_gen_step = b.addRunArtifact(wrapper_gen_tool);
+    //    wrap_gen_step.addFileArg(wf.getDirectory().path(b, pair.in));
+    //    pair.fout = wrap_gen_step.addOutputFileArg(pair.out);
+    //    lib.step.dependOn(&wrap_gen_step.step);
+    //}
+
+    b.installArtifact(wrapper_gen_tool);
 
     // Unit testing and ZLS check
 
@@ -106,6 +123,16 @@ pub fn build(b: *std.Build) void {
     const check = b.step("check", "ZLS compile check (no binary emit)");
     check.dependOn(&lib_check.step);
 }
+
+const WrapperPair = struct {
+    in: [] const u8,
+    out: [] const u8,
+    fout: ?std.Build.LazyPath,
+};
+
+var wrapper_pairs = [_]WrapperPair {
+    .{.in = "include/gsl/gsl_sf_bessel.h", .out = "sf_bessel.zig", .fout = null}
+};
 
 // NOTE TO USERS: If at any point you find a linker error, it's very likely
 // it's simply a forgotten entry in the huge list below. 

@@ -1,5 +1,5 @@
-// NOTE:
-// Errors are 
+// Errors are only used when emitting an error implies no useful information may be 
+// extracted, other than that involved by the error! 
 const GslError = error {
 	Dom,
 	Range,
@@ -14,8 +14,8 @@ const GslError = error {
 	MaxIter,
 	ZeroDiv,
 	Tol,
-	Undrflw,
-	Ovrflw,
+	Underflow,
+	Overflow,
 	Loss,
 	Round,
 	BadLen,
@@ -32,4 +32,9 @@ const GslError = error {
 	TolX,
 	TolG,
 	Eof
+};
+
+const OverflowOrUnderflowError = error {
+	Overflow,
+	Underflow,
 };
