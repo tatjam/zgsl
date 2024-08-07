@@ -98,6 +98,28 @@ pub fn parse_doc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFuncti
 
 		to.doc = try alloc.realloc(to.doc, actually_written);
 
+		// Exceptions, always a single line
+		if(excpt_loc) | excpt | {
+			to.exceptions = try alloc.alloc([] u8, 1);
+
+			const excpt_line_end = 
+				excpt + (std.mem.indexOf(u8, block[excpt..], "\n") orelse return error.BadDoc);
+			var spaces_it = 
+				std.mem.splitAny(u8, block[(excpt + 12)..excpt_line_end], " ");
+			
+			var first = true;
+			while(spaces_it.next()) |token| {
+				if(!first) {
+					to.exceptions = try alloc.realloc(to.exceptions, to.exceptions.len + 1);
+				}
+				to.exceptions[to.exceptions.len - 1] = try alloc.alloc(u8, token.len);
+				std.mem.copyForwards(u8, to.exceptions[to.exceptions.len - 1], token);
+				first = false;
+			}
+		} else {
+			to.exceptions.len = 0;
+		}
+
 	}
 
 

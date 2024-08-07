@@ -31,10 +31,13 @@ pub fn main() !void {
 	for(blocks.items[1..]) |block| {
 		const funcs = try parser.parse_block(arena, block.items);
 		for(funcs) |func| {
-			std.log.info("Function:\n Name: {s}\n Ret: {s}\n Doc: {s}\n Excpt: ", 
+			std.log.info("Function:\n Name: {s}\n Ret: {s}\n Doc: {s}", 
 				.{func.name, func.rettype, func.doc});
 			for(func.arg_names, 0..) |arg, i| {
 				std.log.info("Arg {}, type {s}, name {s}\n", .{i, func.arg_types[i], arg});
+			}
+			for(func.exceptions, 0..) |exc, i| {
+				std.log.info("Excpt {}: {s}\n", .{i, exc});
 			}
 		}
 	}
