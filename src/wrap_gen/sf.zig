@@ -3,11 +3,12 @@
 // and for non-erroring functions simply wrap directly
 const std = @import("std");
 const parser = @import("c_parse.zig");
+const zig_gen = @import("zig_gen.zig");
 
-pub fn emit_function_header(fout: std.fs.File, fun: parser.ParsedCFunction) !void {
+pub fn emit_function_header(fout: std.fs.File, cfg: zig_gen.FunctionConfig, args: []const u8, err: []const u8, ret: []const u8) !void {
     try fout.writeAll("pub fn ");
     // Function name gets trimmed to remove all redundant namespacing
-    var tokens = std.mem.tokenizeAny(u8, fun.name, "_");
+    var tokens = std.mem.tokenizeAny(u8, cfg.fun.name, "_");
 
     // Non common namespace: trig, zeta, sincos, erf, dilog, exp
     //  These are simply not trmmed, which results in name duplication but makes sense
@@ -49,11 +50,31 @@ pub fn emit_function_header(fout: std.fs.File, fun: parser.ParsedCFunction) !voi
     }
 
     try fout.writeAll("(");
+    try fout.writeAll(args);
+    try fout.writeAll(") ");
+
+    if (err.len != 0) {
+        try fout.writeAll(err);
+        try fout.writeAll("!");
+    }
+
+    if (ret.len == 0) {
+        try fout.writeAll("void");
+    } else {
+        try fout.writeAll(ret);
+    }
+
+    try fout.writeAll(" {\n");
 }
 
 pub fn wrap_sf(alloc: std.mem.Allocator, fout: std.fs.File, fun: parser.ParsedCFunction) !void {
-    _ = alloc;
-    try emit_function_header(fout, fun);
+    const cfg = try zig_gen.make_default_config(fun);
+
+    const args = try zig_gen.build_args(alloc, cfg);
+    const ret = try zig_gen.build_ret(alloc, cfg);
+    const err = try zig_gen.build_errors(alloc, cfg);
+
+    try emit_function_header(fout, cfg, args, err, ret);
     if (std.mem.eql(u8, fun.rettype, "int")) {
         // Has error handling
 
