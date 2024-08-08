@@ -8,9 +8,11 @@ pub fn build(b: *std.Build) void {
 
     // Config generation
 
-    const config_gen_tool = b.addExecutable(
-        .{ .name = "config_gen", .root_source_file = b.path("src/config_gen.zig"), 
-        .target = b.host });
+    const config_gen_tool = b.addExecutable(.{
+        .name = "config_gen",
+        .root_source_file = b.path("src/config_gen.zig"),
+        .target = b.host,
+    });
 
     const config_gen_step = b.addRunArtifact(config_gen_tool);
     const config_file = config_gen_step.addOutputFileArg("config.h");
@@ -18,7 +20,11 @@ pub fn build(b: *std.Build) void {
 
     // Header generation
 
-    const header_gen_tool = b.addExecutable(.{ .name = "header_gen", .root_source_file = b.path("src/header_gen.zig"), .target = b.host });
+    const header_gen_tool = b.addExecutable(.{
+        .name = "header_gen",
+        .root_source_file = b.path("src/header_gen.zig"),
+        .target = b.host,
+    });
 
     const header_gen_step = b.addRunArtifact(header_gen_tool);
     // Inside this folder, a "gsl/" directory is created that contains copies
@@ -29,7 +35,11 @@ pub fn build(b: *std.Build) void {
 
     // Static GSL library
 
-    const gsl_lib = b.addStaticLibrary(.{ .name = "gsl", .optimize = optimize, .target = target });
+    const gsl_lib = b.addStaticLibrary(.{
+        .name = "gsl",
+        .optimize = optimize,
+        .target = target,
+    });
     gsl_lib.linkLibC();
 
     // All source files in gls
@@ -45,11 +55,13 @@ pub fn build(b: *std.Build) void {
 
     // Copy gsl headers, if the user wants to use those directly
     const wf = b.addNamedWriteFiles("gsl_include");
-    _ = wf.addCopyDirectory(gsl_files, "include", 
-        .{ .include_extensions = &[_][]const u8{".h"} });
+    _ = wf.addCopyDirectory(gsl_files, "include", .{ .include_extensions = &[_][]const u8{".h"} });
 
-    const headers_dir = b.addInstallDirectory(
-        .{ .source_dir = wf.getDirectory(), .install_dir = .prefix, .install_subdir = "" });
+    const headers_dir = b.addInstallDirectory(.{
+        .source_dir = wf.getDirectory(),
+        .install_dir = .prefix,
+        .install_subdir = "",
+    });
     headers_dir.step.dependOn(&wf.step);
     headers_dir.step.dependOn(&header_gen_step.step);
 
@@ -117,9 +129,7 @@ const WrapperPair = struct {
     fout: ?std.Build.LazyPath,
 };
 
-var wrapper_pairs = [_]WrapperPair{
-    .{ .in = "include/gsl/gsl_sf_bessel.h", .out = "sf_bessel.zig", 
-        .logic = "sf", .fout = null }};
+var wrapper_pairs = [_]WrapperPair{.{ .in = "include/gsl/gsl_sf_bessel.h", .out = "sf_bessel.zig", .logic = "sf", .fout = null }};
 
 // NOTE TO USERS: If at any point you find a linker error, it's very likely
 // it's simply a forgotten entry in the huge list below.

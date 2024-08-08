@@ -18,10 +18,18 @@ pub fn linkAllGslFiles(alloc: std.mem.Allocator, b: std.fs.Dir, target: std.fs.D
             //defer alloc.free(tgt);
             //try target.symLink(tgt, entry.name,
             //    .{ .is_directory = false });
-            try b.copyFile(entry.name, target, entry.name, .{});
+            try b.copyFile(
+                entry.name,
+                target,
+                entry.name,
+                .{},
+            );
         } else if (entry.kind == .directory) {
             // Recurse
-            const ndir = try b.openDir(entry.name, .{ .iterate = true, .no_follow = true });
+            const ndir = try b.openDir(entry.name, .{
+                .iterate = true,
+                .no_follow = true,
+            });
             try linkAllGslFiles(alloc, ndir, target);
         }
     }
@@ -41,14 +49,18 @@ pub fn main() !void {
     // Create gsl directory within output dir
     var holder_dir = try std.fs.openDirAbsolute(output_dir_path, .{});
     defer holder_dir.close();
-    var tgt_dir = try holder_dir.makeOpenPath("gsl", 
-        .{ .iterate = false, .no_follow = true });
+    var tgt_dir = try holder_dir.makeOpenPath("gsl", .{
+        .iterate = false,
+        .no_follow = true,
+    });
     defer tgt_dir.close();
 
     // Now, we must symlink all /gsl*.h and /*/gsl*.h files into gsl/ directory,
     // which is done by default by an autoconfig makefile, we do so recursively
-    var gsl_iter = try std.fs.openDirAbsolute(gsl_path, 
-        .{ .iterate = true, .no_follow = true });
+    var gsl_iter = try std.fs.openDirAbsolute(gsl_path, .{
+        .iterate = true,
+        .no_follow = true,
+    });
     defer gsl_iter.close();
 
     try linkAllGslFiles(arena, gsl_iter, tgt_dir);
