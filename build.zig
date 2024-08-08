@@ -6,13 +6,9 @@ pub fn build(b: *std.Build) void {
 
     const upstream = b.dependency("gsl", .{});
 
-    // Config generation 
-    
-    const config_gen_tool = b.addExecutable(.{
-        .name = "config_gen",
-        .root_source_file = b.path("src/config_gen.zig"),
-        .target = b.host
-    });
+    // Config generation
+
+    const config_gen_tool = b.addExecutable(.{ .name = "config_gen", .root_source_file = b.path("src/config_gen.zig"), .target = b.host });
 
     const config_gen_step = b.addRunArtifact(config_gen_tool);
     const config_file = config_gen_step.addOutputFileArg("config.h");
@@ -20,11 +16,7 @@ pub fn build(b: *std.Build) void {
 
     // Header generation
 
-    const header_gen_tool = b.addExecutable(.{
-        .name = "header_gen",
-        .root_source_file = b.path("src/header_gen.zig"),
-        .target = b.host
-    });
+    const header_gen_tool = b.addExecutable(.{ .name = "header_gen", .root_source_file = b.path("src/header_gen.zig"), .target = b.host });
 
     const header_gen_step = b.addRunArtifact(header_gen_tool);
     // Inside this folder, a "gsl/" directory is created that contains copies
@@ -35,11 +27,7 @@ pub fn build(b: *std.Build) void {
 
     // Static GSL library
 
-    const gsl_lib = b.addStaticLibrary(.{
-        .name = "gsl",
-        .optimize = optimize,
-        .target = target
-    });
+    const gsl_lib = b.addStaticLibrary(.{ .name = "gsl", .optimize = optimize, .target = target });
     gsl_lib.linkLibC();
 
     // All source files in gls
@@ -52,20 +40,14 @@ pub fn build(b: *std.Build) void {
     gsl_lib.addIncludePath(gsl_files);
 
     // GSL header files
-    
+
     // Copy gsl headers, if the user wants to use those directly
     const wf = b.addNamedWriteFiles("gsl_include");
-    _ = wf.addCopyDirectory(gsl_files, "include", 
-        .{.include_extensions = &[_][]const u8 {".h"}});
+    _ = wf.addCopyDirectory(gsl_files, "include", .{ .include_extensions = &[_][]const u8{".h"} });
 
-    const headers_dir = b.addInstallDirectory(.{
-        .source_dir = wf.getDirectory(),
-        .install_dir = .prefix,
-        .install_subdir = ""
-    });
+    const headers_dir = b.addInstallDirectory(.{ .source_dir = wf.getDirectory(), .install_dir = .prefix, .install_subdir = "" });
     headers_dir.step.dependOn(&wf.step);
     headers_dir.step.dependOn(&header_gen_step.step);
-
 
     // zgsl static library
 
@@ -82,12 +64,12 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(gsl_lib);
     b.installArtifact(lib);
-    
+
     // Wrapper generation
     const wrapper_gen_tool = b.addExecutable(.{
         .name = "wrapper_gen",
         .root_source_file = b.path("src/wrapper_gen.zig"),
-        .target = b.host
+        .target = b.host,
     });
 
     //for(&wrapper_pairs) |*pair| {
@@ -125,17 +107,16 @@ pub fn build(b: *std.Build) void {
 }
 
 const WrapperPair = struct {
-    in: [] const u8,
-    out: [] const u8,
+    in: []const u8,
+    out: []const u8,
+    logic: []const u8,
     fout: ?std.Build.LazyPath,
 };
 
-var wrapper_pairs = [_]WrapperPair {
-    .{.in = "include/gsl/gsl_sf_bessel.h", .out = "sf_bessel.zig", .fout = null}
-};
+var wrapper_pairs = [_]WrapperPair{.{ .in = "include/gsl/gsl_sf_bessel.h", .out = "sf_bessel.zig", .logic = "sf", .fout = null }};
 
 // NOTE TO USERS: If at any point you find a linker error, it's very likely
-// it's simply a forgotten entry in the huge list below. 
+// it's simply a forgotten entry in the huge list below.
 
 // TODO: This list is manually maintained!
 // As of now, done by:
@@ -143,7 +124,7 @@ var wrapper_pairs = [_]WrapperPair {
 // manually copying and using a vim macro to insert proper folder structure
 // removing all sources which are noinst (tests, _source, some others...)
 //  (usually those give compile errors and thus are easy to identify)
-const gsl_sources = [_][]const u8 {
+const gsl_sources = [_][]const u8{
     "blas/blas.c",
 
     "block/block.c",
@@ -979,7 +960,5 @@ const gsl_sources = [_][]const u8 {
     "wavelet/haar.c",
     "wavelet/wavelet.c",
 
-    "version.c"
-
-
+    "version.c",
 };

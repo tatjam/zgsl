@@ -3,12 +3,7 @@
 
     .version = "0.0.0",
 
-    .dependencies = .{
-        .gsl = .{
-            .url = "https://ftp.gnu.org/gnu/gsl/gsl-2.8.tar.gz",
-            .hash = "12207ed58385b1c57052f1ee9de5f726056a46ebb4c9e9df8b7c027f1c2f641c3543"
-        }
-    },
+    .dependencies = .{ .gsl = .{ .url = "https://ftp.gnu.org/gnu/gsl/gsl-2.8.tar.gz", .hash = "12207ed58385b1c57052f1ee9de5f726056a46ebb4c9e9df8b7c027f1c2f641c3543" } },
 
     .paths = .{
         "build.zig",
