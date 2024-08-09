@@ -247,6 +247,14 @@ pub fn convert_type_to_zig(typ: []const u8) []const u8 {
     unreachable;
 }
 
+pub fn convert_sliced_type_to_zig(typ: []const u8) []const u8 {
+    if (std.mem.eql(u8, typ, "double *")) {
+        return "f64";
+    }
+
+    unreachable;
+}
+
 fn check_is_ret_arg(idx: usize, cfg: FunctionConfig) bool {
     if (cfg.ret_args) |ret_args| {
         for (ret_args) |ridx| {
@@ -276,10 +284,10 @@ pub fn build_args(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
         const as_bound_checked = get_as_bound_checked(idx, cfg);
         if (as_bound_checked) |bchecked| {
             _ = bchecked;
-            // TODO:  Convert to an appropiate slice
             try out.appendSlice(name);
             try out.appendSlice(": ");
-            try out.appendSlice("void");
+            try out.appendSlice("[]");
+            try out.appendSlice(convert_sliced_type_to_zig(typ));
             try out.appendSlice(", ");
         } else {
             // We do no conversion to the arg, simply use Zig syntax
@@ -307,6 +315,8 @@ pub fn build_invoke(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
         }
     }
 
+    // TODO: Bounds check slices
+
     // Invoke the function, and store its return value
     try out.appendSlice("const ret = ");
     try out.appendSlice("c_gsl.");
@@ -319,7 +329,8 @@ pub fn build_invoke(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
             try out.appendSlice("&");
             try out.appendSlice(name);
         } else if (as_bcheck) |bcheck| {
-            try out.appendSlice("todo");
+            try out.appendSlice(name);
+            try out.appendSlice(".ptr");
             _ = bcheck;
         } else {
             try out.appendSlice(name);
