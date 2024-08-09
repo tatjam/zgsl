@@ -142,6 +142,9 @@ pub fn wrap_sf(alloc: std.mem.Allocator, fout: std.fs.File, fun: parser.ParsedCF
     const ret = try zig_gen.build_ret(alloc, cfg);
     const err = try zig_gen.build_errors(alloc, cfg);
 
+    const doc = try zig_gen.build_doc(alloc, cfg);
+    try fout.writeAll(doc);
+
     try emit_function_header(fout, cfg, args, err, ret);
     if (std.mem.eql(u8, fun.rettype, "int")) {
         // Has error handling
@@ -158,5 +161,5 @@ pub fn wrap_sf(alloc: std.mem.Allocator, fout: std.fs.File, fun: parser.ParsedCF
     }
     const ret_state = try zig_gen.build_ret_state(alloc, cfg);
     try fout.writeAll(ret_state);
-    try fout.writeAll("}\n");
+    try fout.writeAll("}\n\n");
 }

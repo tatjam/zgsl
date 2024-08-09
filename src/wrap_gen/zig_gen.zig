@@ -247,6 +247,24 @@ pub fn convert_type_to_zig(typ: []const u8) []const u8 {
     unreachable;
 }
 
+fn check_is_ret_arg(idx: usize, cfg: FunctionConfig) bool {
+    if (cfg.ret_args) |ret_args| {
+        for (ret_args) |ridx| {
+            if (idx == ridx) return true;
+        }
+    }
+    return false;
+}
+
+fn get_as_bound_checked(idx: usize, cfg: FunctionConfig) ?BoundCheckedArg {
+    if (cfg.bound_checked_args) |bcheck_args| {
+        for (bcheck_args) |bcheck| {
+            if (bcheck.idx == idx) return bcheck;
+        }
+    }
+    return null;
+}
+
 // Removes return arguments
 // Converts bound checked args to slices
 // Keeps argument ordering!
@@ -254,21 +272,8 @@ pub fn build_args(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
     var out = std.ArrayList(u8).init(alloc);
 
     for (cfg.fun.arg_names, cfg.fun.arg_types, 0..) |name, typ, idx| {
-        const is_ret_arg = if (cfg.ret_args) |ret_args| blk: {
-            for (ret_args) |ridx| {
-                if (idx == ridx) break :blk true;
-            }
-            break :blk false;
-        } else false;
-        if (is_ret_arg) continue;
-
-        const as_bound_checked = if (cfg.bound_checked_args) |bcheck_args| blk: {
-            for (bcheck_args) |bcheck| {
-                if (bcheck.idx == idx) break :blk bcheck;
-            }
-            break :blk null;
-        } else null;
-
+        if (check_is_ret_arg(idx, cfg)) continue;
+        const as_bound_checked = get_as_bound_checked(idx, cfg);
         if (as_bound_checked) |bchecked| {
             _ = bchecked;
             // TODO:  Convert to an appropiate slice
@@ -307,6 +312,20 @@ pub fn build_invoke(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
     try out.appendSlice("c_gsl.");
     try out.appendSlice(cfg.fun.name);
     try out.appendSlice("(");
+    for (cfg.fun.arg_names, 0..) |name, idx| {
+        const is_ret_arg = check_is_ret_arg(idx, cfg);
+        const as_bcheck = get_as_bound_checked(idx, cfg);
+        if (is_ret_arg) {
+            try out.appendSlice("&");
+            try out.appendSlice(name);
+        } else if (as_bcheck) |bcheck| {
+            try out.appendSlice("todo");
+            _ = bcheck;
+        } else {
+            try out.appendSlice(name);
+        }
+        try out.appendSlice(", ");
+    }
 
     try out.appendSlice(");\n");
 
@@ -428,15 +447,48 @@ pub fn build_err_convert(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
     return out.toOwnedSlice();
 }
 
-pub fn build_ret_state(alloc: std.mem.Allocator, cfg: FunctionConfig) ![] u8 {
+pub fn build_ret_state(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
     var out = std.ArrayList(u8).init(alloc);
 
-    if(!has_errors(cfg)) {
-        // Pretty simple
-        try out.appendSlice("return ret;\n");
-    }
-    else {
+    try out.appendSlice("return ");
 
+    if (!has_errors(cfg)) {
+        // Pretty simple
+        try out.appendSlice("ret;\n");
+    } else {
+        if (cfg.ret_args) |ret_args| {
+            if (ret_args.len == 1) {
+                try out.appendSlice(cfg.fun.arg_names[cfg.ret_args.?[0]]);
+                try out.appendSlice(";\n");
+            } else {
+                // Build the return struct
+                try out.appendSlice(".{");
+                for (cfg.ret_args.?) |idx| {
+                    try out.appendSlice(".");
+                    try out.appendSlice(cfg.fun.arg_names[idx]);
+                    try out.appendSlice(" = ");
+                    try out.appendSlice(cfg.fun.arg_names[idx]);
+                    try out.appendSlice(", ");
+                }
+                try out.appendSlice("};\n");
+            }
+        } else {
+            try out.appendSlice("void;\n");
+        }
+    }
+
+    return out.toOwnedSlice();
+}
+
+pub fn build_doc(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
+    var out = std.ArrayList(u8).init(alloc);
+
+    var toks = std.mem.splitAny(u8, cfg.fun.doc, "\n");
+    while (toks.next()) |line| {
+        if (line.len == 0) continue;
+        try out.appendSlice("//");
+        try out.appendSlice(line);
+        try out.appendSlice("\n");
     }
 
     return out.toOwnedSlice();
