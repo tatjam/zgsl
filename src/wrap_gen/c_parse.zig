@@ -132,7 +132,7 @@ pub fn sanitize_type(alloc: std.mem.Allocator, typ: []const u8) ![]u8 {
 
     var tokens = std.mem.splitAny(u8, typ, " ");
     while (tokens.next()) |tok| {
-        if (tok.len == 0 or tok.len == 1) {
+        if (tok.len == 0) {
             continue;
         } else if (std.mem.eql(u8, tok, "INLINE_FUN")) {
             continue;

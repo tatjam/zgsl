@@ -5,7 +5,7 @@ const std = @import("std");
 const parser = @import("c_parse.zig");
 const zig_gen = @import("zig_gen.zig");
 
-pub fn emit_function_header(fout: std.fs.File, cfg: zig_gen.FunctionConfig, args: []const u8, err: []const u8, ret: []const u8) !void {
+fn emit_function_header(fout: std.fs.File, cfg: zig_gen.FunctionConfig, args: []const u8, err: []const u8, ret: []const u8) !void {
     try fout.writeAll("pub fn ");
     // Function name gets trimmed to remove all redundant namespacing
     var tokens = std.mem.tokenizeAny(u8, cfg.fun.name, "_");
@@ -67,8 +67,76 @@ pub fn emit_function_header(fout: std.fs.File, cfg: zig_gen.FunctionConfig, args
     try fout.writeAll(" {\n");
 }
 
+fn convert_result_args(alloc: std.mem.Allocator, cfg: *zig_gen.FunctionConfig) !void {
+    var arr = std.ArrayList(usize).init(alloc);
+    for (cfg.fun.arg_types, 0..) |typ, idx| {
+        if (std.mem.eql(u8, typ, "gsl_sf_result *")) {
+            try arr.append(idx);
+        } else if (std.mem.eql(u8, typ, "gsl_sf_result_e10 *")) {
+            try arr.append(idx);
+        }
+    }
+
+    if (arr.items.len != 0) {
+        cfg.ret_args = try arr.toOwnedSlice();
+    }
+}
+
+// This is some "ad-hoc" logic, could technically be extracted from doc but too hard!
+fn find_bounds(alloc: std.mem.Allocator, cfg: *zig_gen.FunctionConfig) !struct { min: []u8, max: []u8 } {
+    var min: ?[]u8 = null;
+    var max: ?[]u8 = null;
+    for (cfg.fun.arg_names) |name| {
+        if (std.mem.endsWith(u8, name, "min")) {
+            min = name;
+        } else if (std.mem.endsWith(u8, name, "max")) {
+            max = name;
+        }
+    }
+
+    if (min == null) {
+        min = try alloc.alloc(u8, 1);
+        min.?[0] = '0';
+    }
+    if (max == null) {
+        return error.InvalidBound;
+    }
+    return .{ .min = min.?, .max = max.? };
+}
+
+fn convert_bound_args(alloc: std.mem.Allocator, cfg: *zig_gen.FunctionConfig) !void {
+    var arr = std.ArrayList(zig_gen.BoundCheckedArg).init(alloc);
+
+    for (cfg.fun.arg_types, 0..) |typ, idx| {
+        if (std.mem.eql(u8, zig_gen.sanify_typ(typ), "double *")) {
+            // Find what kind of bounds we have...
+            var nbound: zig_gen.BoundCheckedArg = undefined;
+            nbound.idx = idx;
+            const bounds = try find_bounds(alloc, cfg);
+            nbound.min = bounds.min;
+            nbound.max = bounds.max;
+            try arr.append(nbound);
+        }
+    }
+
+    if (arr.items.len != 0) {
+        cfg.bound_checked_args = try arr.toOwnedSlice();
+    }
+}
+
+fn skip_fn(fun: parser.ParsedCFunction) bool {
+    if (std.mem.eql(u8, fun.name, "gsl_sf_bessel_sequence_Jnu_e")) {
+        return true;
+    }
+    return false;
+}
+
 pub fn wrap_sf(alloc: std.mem.Allocator, fout: std.fs.File, fun: parser.ParsedCFunction) !void {
-    const cfg = try zig_gen.make_default_config(fun);
+    if (skip_fn(fun)) return;
+    var cfg = try zig_gen.make_default_config(fun);
+
+    try convert_result_args(alloc, &cfg);
+    try convert_bound_args(alloc, &cfg);
 
     const args = try zig_gen.build_args(alloc, cfg);
     const ret = try zig_gen.build_ret(alloc, cfg);
@@ -81,4 +149,14 @@ pub fn wrap_sf(alloc: std.mem.Allocator, fout: std.fs.File, fun: parser.ParsedCF
     } else {
         // Doesn't have error handling, "raw" wrapper
     }
+
+    const invoke = try zig_gen.build_invoke(alloc, cfg);
+    try fout.writeAll(invoke);
+    if (zig_gen.has_errors(cfg)) {
+        const err_conv = try zig_gen.build_err_convert(alloc, cfg);
+        try fout.writeAll(err_conv);
+    }
+    const ret_state = try zig_gen.build_ret_state(alloc, cfg);
+    try fout.writeAll(ret_state);
+    try fout.writeAll("}\n");
 }

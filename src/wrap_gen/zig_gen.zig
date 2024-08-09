@@ -49,6 +49,7 @@ pub const FunctionConfig = struct {
     // handled as Zig errors! Any unhandled exception will return in a
     // (debug) runtime error, to facilitate catching forgotten exceptions
     exceptions: ExceptionsPossible,
+
     // Indices into the function arguments, that are converted instead to an anonymous return struct
     // (or single return value if only one is present)
     ret_args: ?[]usize,
@@ -63,6 +64,7 @@ pub fn make_default_config(fun: parser.ParsedCFunction) !FunctionConfig {
     // try to parse exceptions from doc, if any
 
     out.ret_args = null;
+    out.bound_checked_args = null;
 
     return out;
 }
@@ -186,14 +188,256 @@ pub fn build_errors(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
     return try out.toOwnedSlice();
 }
 
+fn build_ret_single(out: *std.ArrayList(u8), rtype: []u8) !void {
+    if (std.mem.eql(u8, rtype, "gsl_sf_result *")) {
+        try out.appendSlice("Result");
+    } else if (std.mem.eql(u8, rtype, "gsl_sf_result_e10 *")) {
+        try out.appendSlice("ResultE10");
+    } else {
+        try out.appendSlice(convert_type_to_zig(rtype));
+    }
+}
+
+// There are two possibilities:
+// - Bare, single return value
+// - Various return values in anonymous struct
 pub fn build_ret(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
     var out = std.ArrayList(u8).init(alloc);
-    _ = cfg;
+    if (cfg.ret_args) |ret_args| {
+        if (ret_args.len == 1) {
+            try build_ret_single(&out, cfg.fun.arg_types[ret_args[0]]);
+        } else {
+            // Anonymous struct
+            try out.appendSlice(".{");
+            for (ret_args) |idx| {
+                try out.appendSlice(cfg.fun.arg_names[idx]);
+                try out.appendSlice(": ");
+                try build_ret_single(&out, cfg.fun.arg_types[idx]);
+                try out.appendSlice(", ");
+            }
+            try out.appendSlice("}");
+        }
+    } else {
+        // Must be a single return value
+        try build_ret_single(&out, cfg.fun.rettype);
+    }
     return out.toOwnedSlice();
 }
 
+// Zig parameters are always const, so we don't care about the C specifier
+pub fn sanify_typ(typ: []const u8) []const u8 {
+    if (std.mem.startsWith(u8, typ, "const ")) {
+        return sanify_typ(typ[6..]);
+    }
+
+    return typ;
+}
+
+pub fn convert_type_to_zig(typ: []const u8) []const u8 {
+    const sane_typ = sanify_typ(typ);
+
+    if (std.mem.eql(u8, sane_typ, "double")) {
+        return "f64";
+    } else if (std.mem.eql(u8, sane_typ, "int")) {
+        return "i32";
+    } else if (std.mem.eql(u8, sane_typ, "unsigned int")) {
+        return "u32";
+    }
+
+    unreachable;
+}
+
+// Removes return arguments
+// Converts bound checked args to slices
+// Keeps argument ordering!
 pub fn build_args(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
     var out = std.ArrayList(u8).init(alloc);
-    _ = cfg;
+
+    for (cfg.fun.arg_names, cfg.fun.arg_types, 0..) |name, typ, idx| {
+        const is_ret_arg = if (cfg.ret_args) |ret_args| blk: {
+            for (ret_args) |ridx| {
+                if (idx == ridx) break :blk true;
+            }
+            break :blk false;
+        } else false;
+        if (is_ret_arg) continue;
+
+        const as_bound_checked = if (cfg.bound_checked_args) |bcheck_args| blk: {
+            for (bcheck_args) |bcheck| {
+                if (bcheck.idx == idx) break :blk bcheck;
+            }
+            break :blk null;
+        } else null;
+
+        if (as_bound_checked) |bchecked| {
+            _ = bchecked;
+            // TODO:  Convert to an appropiate slice
+            try out.appendSlice(name);
+            try out.appendSlice(": ");
+            try out.appendSlice("void");
+            try out.appendSlice(", ");
+        } else {
+            // We do no conversion to the arg, simply use Zig syntax
+            try out.appendSlice(name);
+            try out.appendSlice(": ");
+            try out.appendSlice(convert_type_to_zig(typ));
+            try out.appendSlice(", ");
+        }
+    }
+
+    return out.toOwnedSlice();
+}
+
+pub fn build_invoke(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
+    var out = std.ArrayList(u8).init(alloc);
+
+    // Relatively simple, we just declare the return arguments...
+    if (cfg.ret_args) |ret_args| {
+        for (ret_args) |idx| {
+            try out.appendSlice("var ");
+            try out.appendSlice(cfg.fun.arg_names[idx]);
+            try out.appendSlice(": ");
+            try build_ret_single(&out, cfg.fun.arg_types[idx]);
+            try out.appendSlice(" = undefined;\n");
+        }
+    }
+
+    // Invoke the function, and store its return value
+    try out.appendSlice("const ret = ");
+    try out.appendSlice("c_gsl.");
+    try out.appendSlice(cfg.fun.name);
+    try out.appendSlice("(");
+
+    try out.appendSlice(");\n");
+
+    return out.toOwnedSlice();
+}
+
+pub fn build_err_convert(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
+    var out = std.ArrayList(u8).init(alloc);
+
+    // We just handle the exceptions indicated in cfg, but leave an "unreachable" block
+    // to catch forgotten ones
+    try out.appendSlice("switch(ret) {\n");
+    try out.appendSlice("c_gsl.GSL_SUCCESS => {},\n");
+    if (cfg.exceptions.failure) {
+        try out.appendSlice("c_gsl.GSL_FAILURE => return GslError.Failure");
+    }
+    //if (cfg.exceptions.cont) {
+    //try out.appendSlice("Continue,");
+    //}
+    //if (cfg.exceptions.domain) {
+    //try out.appendSlice("Domain,");
+    //}
+    //if (cfg.exceptions.range) {
+    //try out.appendSlice("Range,");
+    //}
+    //if (cfg.exceptions.invalid_ptr) {
+    //try out.appendSlice("InvalidPointer,");
+    //}
+    //if (cfg.exceptions.invalid_value) {
+    //try out.appendSlice("InvalidValue,");
+    //}
+    //if (cfg.exceptions.generic_failure) {
+    //try out.appendSlice("GenericFailure,");
+    //}
+    //if (cfg.exceptions.factor) {
+    //try out.appendSlice("Factorization,");
+    //}
+    //if (cfg.exceptions.sanity) {
+    //try out.appendSlice("SanityCheck,");
+    //}
+    //if (cfg.exceptions.no_mem) {
+    //try out.appendSlice("NoMemory,");
+    //}
+    //if (cfg.exceptions.bad_func) {
+    //try out.appendSlice("BadFunction,");
+    //}
+    //if (cfg.exceptions.run_away) {
+    //try out.appendSlice("RunAway,");
+    //}
+    //if (cfg.exceptions.max_iter) {
+    //try out.appendSlice("MaxIter,");
+    //}
+    //if (cfg.exceptions.zero_div) {
+    //try out.appendSlice("ZeroDiv,");
+    //}
+    //if (cfg.exceptions.bad_tol) {
+    //try out.appendSlice("BadTolerance,");
+    //}
+    //if (cfg.exceptions.tol) {
+    //try out.appendSlice("Tolerance,");
+    //}
+    //if (cfg.exceptions.underflow) {
+    //try out.appendSlice("Underflow,");
+    //}
+    //if (cfg.exceptions.overflow) {
+    //try out.appendSlice("Overflow,");
+    //}
+    //if (cfg.exceptions.loss) {
+    //try out.appendSlice("LossOfAccuracy,");
+    //}
+    //if (cfg.exceptions.round) {
+    //try out.appendSlice("Roundoff,");
+    //}
+    //if (cfg.exceptions.bad_len) {
+    //try out.appendSlice("BadLength,");
+    //}
+    //if (cfg.exceptions.not_square) {
+    //try out.appendSlice("NotSquare,");
+    //}
+    //if (cfg.exceptions.singular) {
+    //try out.appendSlice("Singularity,");
+    //}
+    //if (cfg.exceptions.diverge) {
+    //try out.appendSlice("Divergent,");
+    //}
+    //if (cfg.exceptions.unsup) {
+    //try out.appendSlice("Unsupported,");
+    //}
+    //if (cfg.exceptions.unimpl) {
+    //try out.appendSlice("Unimplemented,");
+    //}
+    //if (cfg.exceptions.cache) {
+    //try out.appendSlice("CacheLimit,");
+    //}
+    //if (cfg.exceptions.table) {
+    //try out.appendSlice("TableLimit,");
+    //}
+    //if (cfg.exceptions.no_prog) {
+    //try out.appendSlice("NoProgress,");
+    //}
+    //if (cfg.exceptions.no_prog_j) {
+    //try out.appendSlice("NoProgressJacobian,");
+    //}
+    //if (cfg.exceptions.tol_f) {
+    //try out.appendSlice("ToleranceF,");
+    //}
+    //if (cfg.exceptions.tol_x) {
+    //try out.appendSlice("ToleranceX,");
+    //}
+    //if (cfg.exceptions.tol_g) {
+    //try out.appendSlice("ToleranceG,");
+    //}
+    //if (cfg.exceptions.eof) {
+    //try out.appendSlice("Eof,");
+    //}
+    try out.appendSlice("else => unreachable,\n");
+    try out.appendSlice("}\n");
+
+    return out.toOwnedSlice();
+}
+
+pub fn build_ret_state(alloc: std.mem.Allocator, cfg: FunctionConfig) ![] u8 {
+    var out = std.ArrayList(u8).init(alloc);
+
+    if(!has_errors(cfg)) {
+        // Pretty simple
+        try out.appendSlice("return ret;\n");
+    }
+    else {
+
+    }
+
     return out.toOwnedSlice();
 }
