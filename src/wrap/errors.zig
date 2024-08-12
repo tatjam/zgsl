@@ -1,5 +1,5 @@
 // These are all possible GSL errors, note that some are unused in the wrapper!
-const GslError = error{
+pub const GslError = error{
     Failure,
     Continue,
     Domain,

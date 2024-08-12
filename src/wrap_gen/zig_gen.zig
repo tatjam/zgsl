@@ -1,41 +1,41 @@
 const std = @import("std");
 const parser = @import("c_parse.zig");
 
-const ExceptionsPossible = packed struct {
-    failure: bool = true,
-    cont: bool = true,
-    domain: bool = true,
-    range: bool = true,
-    invalid_ptr: bool = true,
-    invalid_value: bool = true,
-    generic_failure: bool = true,
-    factor: bool = true,
-    sanity: bool = true,
-    no_mem: bool = true,
-    bad_func: bool = true,
-    run_away: bool = true,
-    max_iter: bool = true,
-    zero_div: bool = true,
-    bad_tol: bool = true,
-    tol: bool = true,
-    underflow: bool = true,
-    overflow: bool = true,
-    loss: bool = true,
-    round: bool = true,
-    bad_len: bool = true,
-    not_square: bool = true,
-    singular: bool = true,
-    diverge: bool = true,
-    unsup: bool = true,
-    unimpl: bool = true,
-    cache: bool = true,
-    table: bool = true,
-    no_prog: bool = true,
-    no_prog_j: bool = true,
-    tol_f: bool = true,
-    tol_x: bool = true,
-    tol_g: bool = true,
-    eof: bool = true,
+const ExceptionsPossible = struct {
+    failure: bool = false,
+    cont: bool = false,
+    domain: bool = false,
+    range: bool = false,
+    invalid_ptr: bool = false,
+    invalid_value: bool = false,
+    generic_failure: bool = false,
+    factor: bool = false,
+    sanity: bool = false,
+    no_mem: bool = false,
+    bad_func: bool = false,
+    run_away: bool = false,
+    max_iter: bool = false,
+    zero_div: bool = false,
+    bad_tol: bool = false,
+    tol: bool = false,
+    underflow: bool = false,
+    overflow: bool = false,
+    loss: bool = false,
+    round: bool = false,
+    bad_len: bool = false,
+    not_square: bool = false,
+    singular: bool = false,
+    diverge: bool = false,
+    unsup: bool = false,
+    unimpl: bool = false,
+    cache: bool = false,
+    table: bool = false,
+    no_prog: bool = false,
+    no_prog_j: bool = false,
+    tol_f: bool = false,
+    tol_x: bool = false,
+    tol_g: bool = false,
+    eof: bool = false,
 };
 
 // argument, converted to slice, is checked as
@@ -58,10 +58,99 @@ pub const FunctionConfig = struct {
     bound_checked_args: ?[]BoundCheckedArg,
 };
 
+pub fn set_exceptions(fun: *FunctionConfig, val: bool) void {
+    const tinfo = comptime @typeInfo(ExceptionsPossible).Struct;
+    inline for(tinfo.fields) |field| {
+        @field(fun.exceptions, field.name) = val;
+    }
+}
+
 pub fn make_default_config(fun: parser.ParsedCFunction) !FunctionConfig {
     var out: FunctionConfig = undefined;
     out.fun = fun;
+
+    set_exceptions(&out, false);
+    var has_any = false;
     // try to parse exceptions from doc, if any
+    for(fun.exceptions) |excp| {
+        if(std.mem.eql(u8, excp, "GSL_EDOM")) {
+            out.exceptions.domain = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ERANGE")) {
+            out.exceptions.range = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EFAULT")) {
+            out.exceptions.invalid_ptr = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EINVAL")) {
+            out.exceptions.invalid_value = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EFAILED")) {
+            out.exceptions.generic_failure = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EFACTOR")) {
+            out.exceptions.factor = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ESANITY")) {
+            out.exceptions.sanity = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ENOMEM")) {
+            out.exceptions.no_mem = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EBADFUNC")) {
+            out.exceptions.bad_func = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ERUNAWAY")) {
+            out.exceptions.run_away = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EMAXITER")) {
+            out.exceptions.max_iter = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EZERODIV")) {
+            out.exceptions.zero_div = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EBADTOL")) {
+            out.exceptions.bad_tol = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ETOL")) {
+            out.exceptions.tol = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EUNDRFLW")) {
+            out.exceptions.underflow = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EOVRFLW")) {
+            out.exceptions.overflow = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ELOSS")) {
+            out.exceptions.loss = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EROUND")) {
+            out.exceptions.round = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EBADLEN")) {
+            out.exceptions.bad_len = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ENOTSQR")) {
+            out.exceptions.not_square = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ESING")) {
+            out.exceptions.singular = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EDIVERGE")) {
+            out.exceptions.diverge = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EUNSUP")) {
+            out.exceptions.unsup = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EUNIMPL")) {
+            out.exceptions.unimpl = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ECACHE")) {
+            out.exceptions.cache = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ETABLE")) {
+            out.exceptions.table = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ENOPROG")) {
+            out.exceptions.no_prog = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ENOPROGJ")) {
+            out.exceptions.no_prog_j = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ETOLF")) {
+            out.exceptions.tol_f = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ETOLX")) {
+            out.exceptions.tol_x = true;
+        } else if(std.mem.eql(u8, excp, "GSL_ETOLG")) {
+            out.exceptions.tol_g = true;
+        } else if(std.mem.eql(u8, excp, "GSL_EOF")) {
+            out.exceptions.eof = true;
+        } else if(std.mem.eql(u8, excp, "none")) {
+            // No exceptions, just ignore (has_any will be set to true)
+        } else {
+            std.log.err("Unknown exception string {s}", .{excp});
+            unreachable;
+        }
+
+        has_any = true;
+    }
+
+    // Worst case scenario, assume every one is possible
+    if(!has_any) {
+        set_exceptions(&out, true);
+    }
 
     out.ret_args = null;
     out.bound_checked_args = null;
@@ -369,7 +458,7 @@ pub fn build_err_convert(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
     try out.appendSlice("switch(ret) {\n");
     try out.appendSlice("c_gsl.GSL_SUCCESS => {},\n");
     if (cfg.exceptions.failure) {
-        try out.appendSlice("c_gsl.GSL_FAILURE => return GslError.Failure");
+        try out.appendSlice("c_gsl.GSL_FAILURE => return GslError.Failure,\n");
     }
     //if (cfg.exceptions.cont) {
     //try out.appendSlice("Continue,");
