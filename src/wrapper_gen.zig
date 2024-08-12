@@ -38,6 +38,14 @@ pub fn main() !void {
     // -one or more functions
     // We try to parse each block as those, failure simply leads to the block being ignored
 
+    // TODO: Move to build translate C once Zig supports it
+    try fout.writeAll("const c_gsl = @import(\"c_gsl\").c_gsl;\n");
+
+    switch (logic) {
+        .SF => try sf.emit_header(fout),
+        else => unreachable,
+    }
+
     for (blocks.items[1..]) |block| {
         const funcs = try parser.parse_block(arena, block.items);
         for (funcs) |func| {

@@ -5,6 +5,12 @@ const std = @import("std");
 const parser = @import("c_parse.zig");
 const zig_gen = @import("zig_gen.zig");
 
+pub fn emit_header(fout: std.fs.File) !void {
+    try fout.writeAll("const sf = @import(\"zgsl\").sf;\n");
+    try fout.writeAll("const Result = sf.Result;\n");
+    try fout.writeAll("const ResultE10 = sf.ResultE10;\n");
+}
+
 fn emit_function_header(fout: std.fs.File, cfg: zig_gen.FunctionConfig, args: []const u8, err: []const u8, ret: []const u8) !void {
     try fout.writeAll("pub fn ");
     // Function name gets trimmed to remove all redundant namespacing

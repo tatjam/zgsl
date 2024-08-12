@@ -88,12 +88,35 @@ pub fn build(b: *std.Build) void {
         .target = b.host,
     });
 
-    //for(&wrapper_pairs) |*pair| {
-    //    const wrap_gen_step = b.addRunArtifact(wrapper_gen_tool);
-    //    wrap_gen_step.addFileArg(wf.getDirectory().path(b, pair.in));
-    //    pair.fout = wrap_gen_step.addOutputFileArg(pair.out);
-    //    lib.step.dependOn(&wrap_gen_step.step);
-    //}
+    const wrap_module = b.addModule("wrapper", .{
+        .root_source_file = b.path("src/wrap/zgsl.zig"),
+        .target = target,
+        .optimize = optimize,
+        });
+
+    const c_gsl_include_module = b.createModule(.{
+        .root_source_file = b.path("src/c_gsl.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    
+    c_gsl_include_module.addIncludePath(wf.getDirectory().path(b, "include"));
+
+    for (&wrapper_pairs) |*pair| {
+        const wrap_gen_step = b.addRunArtifact(wrapper_gen_tool);
+        wrap_gen_step.addFileArg(wf.getDirectory().path(b, pair.in));
+        pair.fout = wrap_gen_step.addOutputFileArg(pair.out);
+        wrap_gen_step.addArg(pair.logic);
+        lib.step.dependOn(&wrap_gen_step.step);
+        const trim_point = std.mem.lastIndexOf(u8, pair.out, ".").?;
+        // TODO: We have to make the module public for ZLS, in the future this may not
+        // be needed
+        const module = b.addModule(pair.out[0..trim_point], .{.root_source_file = pair.fout});
+        module.addImport("c_gsl", c_gsl_include_module);
+        module.addImport("zgsl", wrap_module);
+        wrap_module.addImport(pair.out[0..trim_point], module);
+        b.getInstallStep().dependOn(&b.addInstallFile(pair.fout.?, pair.out).step);
+    }
 
     b.installArtifact(wrapper_gen_tool);
 
@@ -129,7 +152,14 @@ const WrapperPair = struct {
     fout: ?std.Build.LazyPath,
 };
 
-var wrapper_pairs = [_]WrapperPair{.{ .in = "include/gsl/gsl_sf_bessel.h", .out = "sf_bessel.zig", .logic = "sf", .fout = null }};
+var wrapper_pairs = [_]WrapperPair{
+    .{
+        .in = "include/gsl/gsl_sf_bessel.h",
+        .out = "wrapped_sf_bessel.zig",
+        .logic = "sf",
+        .fout = null,
+    },
+};
 
 // NOTE TO USERS: If at any point you find a linker error, it's very likely
 // it's simply a forgotten entry in the huge list below.
