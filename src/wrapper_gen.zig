@@ -40,6 +40,7 @@ pub fn main() !void {
 
     // TODO: Move to build translate C once Zig supports it
     try fout.writeAll("const c_gsl = @import(\"c_gsl.zig\").c_gsl;\n");
+    try fout.writeAll("const std = @import(\"std\");\n");
 
     switch (logic) {
         .SF => try sf.emit_header(fout),

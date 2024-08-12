@@ -136,7 +136,6 @@ pub fn build(b: *std.Build) void {
         const spath = b.allocator.alloc(u8, pair.out.len + 9) catch unreachable;
         std.mem.copyForwards(u8, spath, "src/wrap/");
         std.mem.copyForwards(u8, spath[9..], pair.out);
-        std.log.info("Wrapping {s} to: {s}", .{pair.in, spath});
         source_files.addCopyFileToSource(pair.fout.?, spath);
 
         source_files.step.dependOn(&wrap_gen_step.step);
