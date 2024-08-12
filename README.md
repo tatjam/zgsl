@@ -40,8 +40,7 @@ To use the Zig wrapper, you will use the module:
 exe.root_module.addImport("zgsl", zgsl.module("wrapper"));
 ```
 
-Now you have access to the wrapper under the name `zgsl`. For example, to compute a Bessel function
-you can use in your `main.zig` file:
+Now you have access to the wrapper under the name `zgsl`. For example, to compute a Bessel function:
 
 ```Zig     
 const sf = @import("zgsl").sf;
@@ -84,6 +83,8 @@ if(err != gsl.GSL_SUCCESS) {
 }
 std.debug.print("Raw Bessel J0(5.0) = {}, error bound = {}\n", .{result_raw.val, result_raw.err});
 ```
+
+The convenience of the wrapper, which exploits Zig's errors, should have become evident.
 
 ## With C / other languages
 
