@@ -6,7 +6,7 @@ const parser = @import("c_parse.zig");
 const zig_gen = @import("zig_gen.zig");
 
 pub fn emit_header(fout: std.fs.File) !void {
-    try fout.writeAll("const sf = @import(\"zgsl\").sf;\n");
+    try fout.writeAll("const sf = @import(\"zgsl.zig\").sf;\n");
     try fout.writeAll("const Result = sf.Result;\n");
     try fout.writeAll("const ResultE10 = sf.ResultE10;\n");
 }

@@ -39,7 +39,7 @@ pub fn main() !void {
     // We try to parse each block as those, failure simply leads to the block being ignored
 
     // TODO: Move to build translate C once Zig supports it
-    try fout.writeAll("const c_gsl = @import(\"c_gsl\").c_gsl;\n");
+    try fout.writeAll("const c_gsl = @import(\"c_gsl.zig\").c_gsl;\n");
 
     switch (logic) {
         .SF => try sf.emit_header(fout),

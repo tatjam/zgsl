@@ -326,8 +326,9 @@ pub fn build_invoke(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
         const is_ret_arg = check_is_ret_arg(idx, cfg);
         const as_bcheck = get_as_bound_checked(idx, cfg);
         if (is_ret_arg) {
-            try out.appendSlice("&");
+            try out.appendSlice("@ptrCast(&");
             try out.appendSlice(name);
+            try out.appendSlice(")");
         } else if (as_bcheck) |bcheck| {
             try out.appendSlice(name);
             try out.appendSlice(".ptr");
