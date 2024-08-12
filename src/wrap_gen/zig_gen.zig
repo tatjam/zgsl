@@ -604,7 +604,7 @@ pub fn build_doc(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
     var toks = std.mem.splitAny(u8, cfg.fun.doc, "\n");
     while (toks.next()) |line| {
         if (line.len == 0) continue;
-        try out.appendSlice("//");
+        try out.appendSlice("///");
         try out.appendSlice(line);
         try out.appendSlice("\n");
     }
