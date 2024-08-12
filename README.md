@@ -13,21 +13,21 @@ Check below for the list of stuff that has been wrapped!
 Usage with Zig is as simple as adding a dependency to your `build.zig.zon`:
 
 ```Zig
-    .dependencies = .{
-        .zgsl = .{
-			.url = "TO BE SPECIFIED",
-			.hash = "TO BE SPECIFIED",
-        }
-    },
+.dependencies = .{
+	.zgsl = .{
+		.url = "TO BE SPECIFIED",
+		.hash = "TO BE SPECIFIED",
+	}
+},
 ```
 
 and including the dependency as needed in your `build.zig`:
 
 ```Zig 
-    const zgsl = b.dependency("zgsl", .{
-        .target = target,
-        .optimize = optimize
-    });
+const zgsl = b.dependency("zgsl", .{
+	.target = target,
+	.optimize = optimize
+});
 ```
 
 Afterwards, depending on whether you want to use the wrapper or the raw functions (or both):
@@ -37,19 +37,19 @@ Afterwards, depending on whether you want to use the wrapper or the raw function
 To use the Zig wrapper, you will use the module:
 
 ```Zig    
-	exe.root_module.addImport("zgsl", zgsl.module("wrapper"));
+exe.root_module.addImport("zgsl", zgsl.module("wrapper"));
 ```
 
 Now you have access to the wrapper under the name `zgsl`. For example, to compute a Bessel function
 you can use in your `main.zig` file:
 
 ```Zig     
-	const sf = @import("zgsl").sf;
+const sf = @import("zgsl").sf;
 
-	...
+...
 
-	const result = try sf.bessel.J0_e(5.0);
-	std.debug.print("Bessel J0(5.0) = {}, error = {}\n", .{result.val, result.err});
+const result = try sf.bessel.J0_e(5.0);
+std.debug.print("Bessel J0(5.0) = {}, error = {}\n", .{result.val, result.err});
 ```
 
 To learn more about the wrapper, check the tests contained in `TO BE SPECIFIED`.
@@ -60,11 +60,11 @@ In this case you also have to include the GSL header files and link with the
 library, which can be done as follows:
 
 ```Zig    
-	const gsl_lib = zgsl.artifact("gsl");
-    exe.linkLibrary(gsl_lib);
-    exe.step.dependOn(&zgsl.namedWriteFiles("gsl_include").step);
-    exe.addIncludePath(zgsl.namedWriteFiles("gsl_include").getDirectory().path(b, "include"));
-    exe.linkLibC();
+const gsl_lib = zgsl.artifact("gsl");
+exe.linkLibrary(gsl_lib);
+exe.step.dependOn(&zgsl.namedWriteFiles("gsl_include").step);
+exe.addIncludePath(zgsl.namedWriteFiles("gsl_include").getDirectory().path(b, "include"));
+exe.linkLibC();
 ```
 
 Now you can directly call the GSL. The same example as before would be implemented as follows:
@@ -73,7 +73,7 @@ Now you can directly call the GSL. The same example as before would be implement
 const gsl = @cImport({
     @cInclude("gsl/gsl_sf_bessel.h");
     @cInclude("gsl/gsl_errno.h");
-	});
+});
 
 ...
 
