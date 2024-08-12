@@ -35,7 +35,6 @@ const ExceptionsPossible = struct {
     tol_f: bool = false,
     tol_x: bool = false,
     tol_g: bool = false,
-    eof: bool = false,
 };
 
 // argument, converted to slice, is checked as
@@ -135,8 +134,6 @@ pub fn make_default_config(fun: parser.ParsedCFunction) !FunctionConfig {
             out.exceptions.tol_x = true;
         } else if(std.mem.eql(u8, excp, "GSL_ETOLG")) {
             out.exceptions.tol_g = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EOF")) {
-            out.exceptions.eof = true;
         } else if(std.mem.eql(u8, excp, "none")) {
             // No exceptions, just ignore (has_any will be set to true)
         } else {
@@ -267,9 +264,6 @@ pub fn build_errors(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
     }
     if (cfg.exceptions.tol_g) {
         try out.appendSlice("ToleranceG,");
-    }
-    if (cfg.exceptions.eof) {
-        try out.appendSlice("Eof,");
     }
 
     try out.appendSlice("}");
@@ -456,109 +450,106 @@ pub fn build_err_convert(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
     // We just handle the exceptions indicated in cfg, but leave an "unreachable" block
     // to catch forgotten ones
     try out.appendSlice("switch(ret) {\n");
-    try out.appendSlice("c_gsl.GSL_SUCCESS => {},\n");
+    try out.appendSlice("c_gsl.GSL_SUCCESS => {},");
     if (cfg.exceptions.failure) {
-        try out.appendSlice("c_gsl.GSL_FAILURE => return GslError.Failure,\n");
+        try out.appendSlice("c_gsl.GSL_FAILURE => return GslError.Failure,");
     }
-    //if (cfg.exceptions.cont) {
-    //try out.appendSlice("Continue,");
-    //}
-    //if (cfg.exceptions.domain) {
-    //try out.appendSlice("Domain,");
-    //}
-    //if (cfg.exceptions.range) {
-    //try out.appendSlice("Range,");
-    //}
-    //if (cfg.exceptions.invalid_ptr) {
-    //try out.appendSlice("InvalidPointer,");
-    //}
-    //if (cfg.exceptions.invalid_value) {
-    //try out.appendSlice("InvalidValue,");
-    //}
-    //if (cfg.exceptions.generic_failure) {
-    //try out.appendSlice("GenericFailure,");
-    //}
-    //if (cfg.exceptions.factor) {
-    //try out.appendSlice("Factorization,");
-    //}
-    //if (cfg.exceptions.sanity) {
-    //try out.appendSlice("SanityCheck,");
-    //}
-    //if (cfg.exceptions.no_mem) {
-    //try out.appendSlice("NoMemory,");
-    //}
-    //if (cfg.exceptions.bad_func) {
-    //try out.appendSlice("BadFunction,");
-    //}
-    //if (cfg.exceptions.run_away) {
-    //try out.appendSlice("RunAway,");
-    //}
-    //if (cfg.exceptions.max_iter) {
-    //try out.appendSlice("MaxIter,");
-    //}
-    //if (cfg.exceptions.zero_div) {
-    //try out.appendSlice("ZeroDiv,");
-    //}
-    //if (cfg.exceptions.bad_tol) {
-    //try out.appendSlice("BadTolerance,");
-    //}
-    //if (cfg.exceptions.tol) {
-    //try out.appendSlice("Tolerance,");
-    //}
-    //if (cfg.exceptions.underflow) {
-    //try out.appendSlice("Underflow,");
-    //}
-    //if (cfg.exceptions.overflow) {
-    //try out.appendSlice("Overflow,");
-    //}
-    //if (cfg.exceptions.loss) {
-    //try out.appendSlice("LossOfAccuracy,");
-    //}
-    //if (cfg.exceptions.round) {
-    //try out.appendSlice("Roundoff,");
-    //}
-    //if (cfg.exceptions.bad_len) {
-    //try out.appendSlice("BadLength,");
-    //}
-    //if (cfg.exceptions.not_square) {
-    //try out.appendSlice("NotSquare,");
-    //}
-    //if (cfg.exceptions.singular) {
-    //try out.appendSlice("Singularity,");
-    //}
-    //if (cfg.exceptions.diverge) {
-    //try out.appendSlice("Divergent,");
-    //}
-    //if (cfg.exceptions.unsup) {
-    //try out.appendSlice("Unsupported,");
-    //}
-    //if (cfg.exceptions.unimpl) {
-    //try out.appendSlice("Unimplemented,");
-    //}
-    //if (cfg.exceptions.cache) {
-    //try out.appendSlice("CacheLimit,");
-    //}
-    //if (cfg.exceptions.table) {
-    //try out.appendSlice("TableLimit,");
-    //}
-    //if (cfg.exceptions.no_prog) {
-    //try out.appendSlice("NoProgress,");
-    //}
-    //if (cfg.exceptions.no_prog_j) {
-    //try out.appendSlice("NoProgressJacobian,");
-    //}
-    //if (cfg.exceptions.tol_f) {
-    //try out.appendSlice("ToleranceF,");
-    //}
-    //if (cfg.exceptions.tol_x) {
-    //try out.appendSlice("ToleranceX,");
-    //}
-    //if (cfg.exceptions.tol_g) {
-    //try out.appendSlice("ToleranceG,");
-    //}
-    //if (cfg.exceptions.eof) {
-    //try out.appendSlice("Eof,");
-    //}
+    if (cfg.exceptions.cont) {
+    try out.appendSlice("c_gsl.GSL_CONTINUE => return GslError.Continue,");
+    }
+    if (cfg.exceptions.domain) {
+    try out.appendSlice("c_gsl.GSL_EDOM => return GslError.Domain,");
+    }
+    if (cfg.exceptions.range) {
+    try out.appendSlice("c_gsl.GSL_ERANGE => return GslError.Range,");
+    }
+    if (cfg.exceptions.invalid_ptr) {
+    try out.appendSlice("c_gsl.GSL_EFAULT => return GslError.InvalidPointer,");
+    }
+    if (cfg.exceptions.invalid_value) {
+    try out.appendSlice("c_gsl.GSL_EINVAL => return GslError.InvalidValue,");
+    }
+    if (cfg.exceptions.generic_failure) {
+    try out.appendSlice("c_gsl.GSL_EFAILUED => return GslError.GenericFailure,");
+    }
+    if (cfg.exceptions.factor) {
+    try out.appendSlice("c_gsl.GSL_EFACTOR => return GslError.Factorization,");
+    }
+    if (cfg.exceptions.sanity) {
+    try out.appendSlice("c_gsl.GSL_ESANITY => return GslError.SanityCheck,");
+    }
+    if (cfg.exceptions.no_mem) {
+    try out.appendSlice("c_gsl.GSL_ENOMEM => return GslError.NoMemory,");
+    }
+    if (cfg.exceptions.bad_func) {
+    try out.appendSlice("c_gsl.GSL_EBADFUNC => return GslError.BadFunction,");
+    }
+    if (cfg.exceptions.run_away) {
+    try out.appendSlice("c_gsl.GSL_ERUNAWAY => return GslError.RunAway,");
+    }
+    if (cfg.exceptions.max_iter) {
+    try out.appendSlice("c_gsl.GSL_EMAXITER => return GslError.MaxIter,");
+    }
+    if (cfg.exceptions.zero_div) {
+    try out.appendSlice("c_gsl.GSL_EZERODIV => return GslError.ZeroDiv,");
+    }
+    if (cfg.exceptions.bad_tol) {
+    try out.appendSlice("c_gsl.GSL_EBADTOL => return GslError.BadTolerance,");
+    }
+    if (cfg.exceptions.tol) {
+    try out.appendSlice("c_gsl.GSL_ETOL => return GslError.Tolerance,");
+    }
+    if (cfg.exceptions.underflow) {
+    try out.appendSlice("c_gsl.GSL_EUNDRFLW => return GslError.Underflow,");
+    }
+    if (cfg.exceptions.overflow) {
+    try out.appendSlice("c_gsl.GSL_EOVRFLW => return GslError.Overflow,");
+    }
+    if (cfg.exceptions.loss) {
+    try out.appendSlice("c_gsl.GSL_ELOSS => return GslError.LossOfAccuracy,");
+    }
+    if (cfg.exceptions.round) {
+    try out.appendSlice("c_gsl.GSL_EROUND => return GslError.Roundoff,");
+    }
+    if (cfg.exceptions.bad_len) {
+    try out.appendSlice("c_gsl.GSL_EBADLEN => return GslError.BadLength,");
+    }
+    if (cfg.exceptions.not_square) {
+    try out.appendSlice("c_gsl.GSL_ENOTSQR => return GslError.NotSquare,");
+    }
+    if (cfg.exceptions.singular) {
+    try out.appendSlice("c_gsl.GSL_ESING => return GslError.Singularity,");
+    }
+    if (cfg.exceptions.diverge) {
+    try out.appendSlice("c_gsl.GSL_EDIVERGE => return GslError.Divergent,");
+    }
+    if (cfg.exceptions.unsup) {
+    try out.appendSlice("c_gsl.GSL_EUNSUP => return GslError.Unsupported,");
+    }
+    if (cfg.exceptions.unimpl) {
+    try out.appendSlice("c_gsl.GSL_EUNIMPL => return GslError.Unimplemented,");
+    }
+    if (cfg.exceptions.cache) {
+    try out.appendSlice("c_gsl.GSL_ECACHE => return GslError.CacheLimit,");
+    }
+    if (cfg.exceptions.table) {
+    try out.appendSlice("c_gsl.GSL_ETABLE => return GslError.TableLimit,");
+    }
+    if (cfg.exceptions.no_prog) {
+    try out.appendSlice("c_gsl.GSL_ENOPROG => return GslError.NoProgress,");
+    }
+    if (cfg.exceptions.no_prog_j) {
+    try out.appendSlice("c_gsl.GSL_ENOPROGJ => return GslError.NoProgressJacobian,");
+    }
+    if (cfg.exceptions.tol_f) {
+    try out.appendSlice("c_gsl.GSL_ETOLF => return GslError.ToleranceF,");
+    }
+    if (cfg.exceptions.tol_x) {
+    try out.appendSlice("c_gsl.GSL_ETOLX => return GslError.ToleranceX,");
+    }
+    if (cfg.exceptions.tol_g) {
+    try out.appendSlice("c_gsl.GSL_ETOLG => return GslError.ToleranceG,");
+    }
     try out.appendSlice("else => unreachable,\n");
     try out.appendSlice("}\n");
 
