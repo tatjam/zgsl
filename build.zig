@@ -81,7 +81,7 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(gsl_lib);
     b.installArtifact(lib);
 
-    // Wrapper generation
+    // Wrapper generation tooling
     const wrapper_gen_tool = b.addExecutable(.{
         .name = "wrapper_gen",
         .root_source_file = b.path("src/wrapper_gen.zig"),
@@ -94,30 +94,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         });
 
-    const c_gsl_include_module = b.createModule(.{
-        .root_source_file = b.path("src/c_gsl.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    
-    c_gsl_include_module.addIncludePath(wf.getDirectory().path(b, "include"));
-
-    for (&wrapper_pairs) |*pair| {
-        const wrap_gen_step = b.addRunArtifact(wrapper_gen_tool);
-        wrap_gen_step.addFileArg(wf.getDirectory().path(b, pair.in));
-        pair.fout = wrap_gen_step.addOutputFileArg(pair.out);
-        wrap_gen_step.addArg(pair.logic);
-        lib.step.dependOn(&wrap_gen_step.step);
-        const trim_point = std.mem.lastIndexOf(u8, pair.out, ".").?;
-        // TODO: We have to make the module public for ZLS, in the future this may not
-        // be needed
-        const module = b.addModule(pair.out[0..trim_point], .{.root_source_file = pair.fout});
-        module.addImport("c_gsl", c_gsl_include_module);
-        module.addImport("zgsl", wrap_module);
-        wrap_module.addImport(pair.out[0..trim_point], module);
-        b.getInstallStep().dependOn(&b.addInstallFile(pair.fout.?, pair.out).step);
-    }
-
+    wrap_module.addIncludePath(wf.getDirectory().path(b, "include"));
     b.installArtifact(wrapper_gen_tool);
 
     // Unit testing and ZLS check
@@ -143,6 +120,31 @@ pub fn build(b: *std.Build) void {
 
     const check = b.step("check", "ZLS compile check (no binary emit)");
     check.dependOn(&lib_check.step);
+
+    // Wrapper updating 
+
+    const source_files = b.addUpdateSourceFiles();
+
+    const wrapper_gen_step = b.step("wrap", "Generate / update wrappers");
+    for (&wrapper_pairs) |*pair| {
+        const wrap_gen_step = b.addRunArtifact(wrapper_gen_tool);
+        wrap_gen_step.addFileArg(wf.getDirectory().path(b, pair.in));
+        pair.fout = wrap_gen_step.addOutputFileArg(pair.out);
+        wrap_gen_step.addArg(pair.logic);
+
+        // We must update the source files themselves
+        const spath = b.allocator.alloc(u8, pair.out.len + 9) catch unreachable;
+        std.mem.copyForwards(u8, spath, "src/wrap/");
+        std.mem.copyForwards(u8, spath[9..], pair.out);
+        std.log.info("Wrapping {s} to: {s}", .{pair.in, spath});
+        source_files.addCopyFileToSource(pair.fout.?, spath);
+
+        source_files.step.dependOn(&wrap_gen_step.step);
+        wrapper_gen_step.dependOn(&source_files.step);
+    }
+
+
+
 }
 
 const WrapperPair = struct {

@@ -64,5 +64,11 @@ pub fn main() !void {
         }
     }
 
+    // Run zig fmt on the generated file
+    const argv = [_][]const u8{ "zig", "fmt", output_fname};
+    var child = std.process.Child.init(&argv, arena);
+    _ = try child.spawnAndWait();
+
+
     return std.process.cleanExit();
 }

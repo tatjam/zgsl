@@ -2,3 +2,6 @@
 .vscode/
 zig-out/
 test.zig
+
+# TODO: Remove these once the wrappers are ready for publication
+src/wrap/wrapped_*
