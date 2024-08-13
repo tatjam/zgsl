@@ -42,22 +42,23 @@ pub fn main() !void {
     try fout.writeAll("const c_gsl = @import(\"c_gsl.zig\").c_gsl;\n");
     try fout.writeAll("const std = @import(\"std\");\n");
     try fout.writeAll("const GslError = @import(\"errors.zig\").GslError;\n");
+    try fout.writeAll("const builtin = @import(\"builtin\");\n");
 
     switch (logic) {
-        .SF => try sf.emit_header(fout),
+        .SF => try sf.emit_header(output_fname, fout),
         else => unreachable,
     }
 
     for (blocks.items[1..]) |block| {
         const funcs = try parser.parse_block(arena, block.items);
         for (funcs) |func| {
-            std.log.info("Function:\n Name: {s}.\n Ret: {s}.\n Doc: {s}.", .{ func.name, func.rettype, func.doc });
-            for (func.arg_names, 0..) |arg, i| {
-                std.log.info("Arg {}, type {s}, name {s}.\n", .{ i, func.arg_types[i], arg });
-            }
-            for (func.exceptions, 0..) |exc, i| {
-                std.log.info("Excpt {}: {s}.\n", .{ i, exc });
-            }
+            //std.log.info("Function:\n Name: {s}.\n Ret: {s}.\n Doc: {s}.", .{ func.name, func.rettype, func.doc });
+            //for (func.arg_names, 0..) |arg, i| {
+            //    std.log.info("Arg {}, type {s}, name {s}.\n", .{ i, func.arg_types[i], arg });
+            //}
+            //for (func.exceptions, 0..) |exc, i| {
+            //    std.log.info("Excpt {}: {s}.\n", .{ i, exc });
+            //}
 
             switch (logic) {
                 .SF => try sf.wrap_sf(arena, fout, func),

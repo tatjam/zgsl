@@ -5,10 +5,12 @@ const std = @import("std");
 const parser = @import("c_parse.zig");
 const zig_gen = @import("zig_gen.zig");
 
-pub fn emit_header(fout: std.fs.File) !void {
+pub fn emit_header(fname: [] const u8, fout: std.fs.File) !void {
+    _ = fname; // autofix
     try fout.writeAll("const sf = @import(\"zgsl.zig\").sf;\n");
     try fout.writeAll("const Result = sf.Result;\n");
     try fout.writeAll("const ResultE10 = sf.ResultE10;\n");
+    try fout.writeAll("const Precision = sf.Precision;\n");
 }
 
 fn emit_function_header(fout: std.fs.File, cfg: zig_gen.FunctionConfig, args: []const u8, err: []const u8, ret: []const u8) !void {
@@ -130,15 +132,16 @@ fn convert_bound_args(alloc: std.mem.Allocator, cfg: *zig_gen.FunctionConfig) !v
     }
 }
 
-fn skip_fn(fun: parser.ParsedCFunction) bool {
+fn skip_fn(fun: parser.ParsedCFunction, fout: std.fs.File) !bool {
     if (std.mem.eql(u8, fun.name, "gsl_sf_bessel_sequence_Jnu_e")) {
+        try fout.writeAll(@embedFile("../wrap/manual/sf/sequence_Jnu_e.zig"));
         return true;
     }
     return false;
 }
 
 pub fn wrap_sf(alloc: std.mem.Allocator, fout: std.fs.File, fun: parser.ParsedCFunction) !void {
-    if (skip_fn(fun)) return;
+    if (try skip_fn(fun, fout)) return;
     var cfg = try zig_gen.make_default_config(fun);
 
     try convert_result_args(alloc, &cfg);

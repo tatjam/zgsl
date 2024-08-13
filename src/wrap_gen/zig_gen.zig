@@ -315,7 +315,7 @@ pub fn sanify_typ(typ: []const u8) []const u8 {
         return sanify_typ(typ[6..]);
     }
 
-    return typ;
+    return std.mem.trim(u8, typ, " ");
 }
 
 pub fn convert_type_to_zig(typ: []const u8) []const u8 {
@@ -327,6 +327,8 @@ pub fn convert_type_to_zig(typ: []const u8) []const u8 {
         return "i32";
     } else if (std.mem.eql(u8, sane_typ, "unsigned int")) {
         return "u32";
+    } else if (std.mem.eql(u8, sane_typ, "gsl_mode_t")) {
+        return "Precision";
     }
 
     unreachable;

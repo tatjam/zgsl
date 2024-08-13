@@ -14,18 +14,28 @@ pub fn preprocess(alloc: std.mem.Allocator, data: []const u8) ![]const u8 {
     // At most, out is as big as the input file
     var out: []u8 = try alloc.alloc(u8, data.len);
     var opos: usize = 0;
+    var inifdef: i32 = 0;
 
     // Iterate over data line by line
     var it = std.mem.splitAny(u8, data, "\n");
     while (it.next()) |x| {
-        if (std.mem.startsWith(u8, x, "#")) {
-            continue;
+        if(inifdef == 0) {
+            if(std.mem.startsWith(u8, x, "#endif")) {
+                inifdef -= 1;
+            }
+        } else {
+            if (std.mem.startsWith(u8, x, "#")) {
+                if(std.mem.startsWith(u8, x, "#ifdef")) {
+                    inifdef += 1;
+                }
+                continue;
+            }
+            const xt = std.mem.trim(u8, x, " \t");
+            std.mem.copyForwards(u8, out[opos..(opos + xt.len)], xt);
+            opos += xt.len;
+            out[opos] = '\n';
+            opos += 1;
         }
-        const xt = std.mem.trim(u8, x, " \t");
-        std.mem.copyForwards(u8, out[opos..(opos + xt.len)], xt);
-        opos += xt.len;
-        out[opos] = '\n';
-        opos += 1;
     }
 
     return out[0..opos];
@@ -77,6 +87,11 @@ pub fn parse_doc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFuncti
         parsed = std.mem.indexOf(u8, block, "*/") orelse return error.BadDoc;
         parsed += 3;
 
+        // Make sure next line is not another doc, otherwise skip to it
+        if(block[parsed] == '/') {
+            return try parse_doc(alloc, block[parsed..], to) + parsed;
+        }
+
         const eloc = if (excpt_loc) |excpt| excpt else parsed;
 
         // Doc up to exceptions is docstring
@@ -104,7 +119,7 @@ pub fn parse_doc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFuncti
             const excpt_line_end =
                 excpt + (std.mem.indexOf(u8, block[excpt..], "\n") orelse return error.BadDoc);
             var spaces_it =
-                std.mem.splitAny(u8, block[(excpt + 12)..excpt_line_end], " ,");
+                std.mem.splitAny(u8, block[(excpt + 12)..excpt_line_end], " ,;");
 
             var first = true;
             while (spaces_it.next()) |token| {
@@ -120,6 +135,10 @@ pub fn parse_doc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFuncti
         } else {
             to.exceptions.len = 0;
         }
+    }
+    else {
+        to.doc.len = 0;
+        to.exceptions.len = 0;
     }
 
     return parsed;
@@ -159,7 +178,6 @@ pub fn parse_fnc_ret_and_name(alloc: std.mem.Allocator, block: []const u8, to: *
     to.rettype = try sanitize_type(alloc, block[0..last_space]);
     to.name = try alloc.alloc(u8, open_par - last_space - 1);
 
-    std.mem.copyForwards(u8, to.rettype, block[0..last_space]);
     std.mem.copyForwards(u8, to.name, block[(last_space + 1)..open_par]);
 
     // +1 because the args start without the parenthesis
@@ -199,6 +217,9 @@ pub fn parse_fnc_argument(alloc: std.mem.Allocator, block: []const u8, to: *Pars
 
 // Returns the number of characters parsed as the function
 pub fn parse_fnc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFunction) !usize {
+    if(std.mem.startsWith(u8, block, "typedef")) {
+        return 0;
+    }
     // First parse the return type and function name
     var p = try parse_fnc_ret_and_name(alloc, block, to);
     // After return type and function name come the arguments, which are done
@@ -235,6 +256,10 @@ pub fn parse_block(alloc: std.mem.Allocator, block: []const u8) ![]ParsedCFuncti
     while (!done) {
         if (!first) {
             out = try alloc.realloc(out, out.len + 1);
+        }
+        const pd = try parse_doc(alloc, block[p..], &out[out.len - 1]);
+        p += pd;
+        if(pd == 0) {
             out[out.len - 1].doc = out[0].doc;
             out[out.len - 1].exceptions = out[0].exceptions;
         }

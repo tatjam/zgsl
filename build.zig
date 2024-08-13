@@ -155,8 +155,50 @@ const WrapperPair = struct {
 
 var wrapper_pairs = [_]WrapperPair{
     .{
+        .in = "include/gsl/gsl_sf_airy.h",
+        .out = "wrapped_sf_airy.zig",
+        .logic = "sf",
+        .fout = null,
+    },
+    .{
         .in = "include/gsl/gsl_sf_bessel.h",
         .out = "wrapped_sf_bessel.zig",
+        .logic = "sf",
+        .fout = null,
+    },
+    .{
+        .in = "include/gsl/gsl_sf_clausen.h",
+        .out = "wrapped_sf_clausen.zig",
+        .logic = "sf",
+        .fout = null,
+    },
+    .{
+        .in = "include/gsl/gsl_sf_coulomb.h",
+        .out = "wrapped_sf_coulomb.zig",
+        .logic = "sf",
+        .fout = null,
+    },
+    .{
+        .in = "include/gsl/gsl_sf_coupling.h",
+        .out = "wrapped_sf_coupling.zig",
+        .logic = "sf",
+        .fout = null,
+    },
+    .{
+        .in = "include/gsl/gsl_sf_dawson.h",
+        .out = "wrapped_sf_dawson.zig",
+        .logic = "sf",
+        .fout = null,
+    },
+    .{
+        .in = "include/gsl/gsl_sf_debye.h",
+        .out = "wrapped_sf_debye.zig",
+        .logic = "sf",
+        .fout = null,
+    },
+    .{
+        .in = "include/gsl/gsl_sf_dilog.h",
+        .out = "wrapped_sf_dilog.zig",
         .logic = "sf",
         .fout = null,
     },
