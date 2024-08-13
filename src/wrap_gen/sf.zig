@@ -18,9 +18,9 @@ fn emit_function_header(fout: std.fs.File, cfg: zig_gen.FunctionConfig, args: []
     // Function name gets trimmed to remove all redundant namespacing
     var tokens = std.mem.tokenizeAny(u8, cfg.fun.name, "_");
 
-    // Non common namespace: trig, zeta, sincos, erf, dilog, exp, coupling, hyperg
+    // Non common namespace: trig, zeta, sincos, erf, dilog, exp
     //  These are simply not trmmed, which results in name duplication but makes sense
-    // Full name in namespace: pow_int, synchrotron, elljac, clausen, dawson
+    // Full name in namespace: pow_int, synchrotron, elljac, clausen, dawson, coupling, hyperg
     //  These are not trimmed either, as it would be confusing syntax. Instead, they are
     //  directly promoted to the upper namespace in the root file
     //  (Conditional compilation guarantees no wasted resources)
