@@ -18,7 +18,7 @@ fn emit_function_header(fout: std.fs.File, cfg: zig_gen.FunctionConfig, args: []
     // Function name gets trimmed to remove all redundant namespacing
     var tokens = std.mem.tokenizeAny(u8, cfg.fun.name, "_");
 
-    // Non common namespace: trig, zeta, sincos, erf, dilog, exp
+    // Non common namespace: trig, zeta, sincos, erf, dilog, exp, coupling, hyperg
     //  These are simply not trmmed, which results in name duplication but makes sense
     // Full name in namespace: pow_int, synchrotron, elljac, clausen, dawson
     //  These are not trimmed either, as it would be confusing syntax. Instead, they are
@@ -29,9 +29,7 @@ fn emit_function_header(fout: std.fs.File, cfg: zig_gen.FunctionConfig, args: []
         if (std.mem.eql(u8, tok, "sf")) continue;
         if (std.mem.eql(u8, tok, "bessel")) continue;
         if (std.mem.eql(u8, tok, "coulomb")) continue;
-        if (std.mem.eql(u8, tok, "coupling")) continue;
         if (std.mem.eql(u8, tok, "ellint")) continue;
-        if (std.mem.eql(u8, tok, "hyperg")) continue;
         if (std.mem.eql(u8, tok, "lambert")) continue;
         if (std.mem.eql(u8, tok, "legendre")) continue;
         if (std.mem.eql(u8, tok, "mathieu")) continue;
@@ -77,10 +75,12 @@ fn emit_function_header(fout: std.fs.File, cfg: zig_gen.FunctionConfig, args: []
 
 fn convert_result_args(alloc: std.mem.Allocator, cfg: *zig_gen.FunctionConfig) !void {
     var arr = std.ArrayList(usize).init(alloc);
-    for (cfg.fun.arg_types, 0..) |typ, idx| {
+    for (cfg.fun.arg_types, cfg.fun.arg_names, 0..) |typ, name, idx| {
         if (std.mem.eql(u8, typ, "gsl_sf_result *")) {
             try arr.append(idx);
         } else if (std.mem.eql(u8, typ, "gsl_sf_result_e10 *")) {
+            try arr.append(idx);
+        } else if(std.mem.eql(u8, name, "sgn")) {
             try arr.append(idx);
         }
     }
@@ -115,7 +115,14 @@ fn find_bounds(alloc: std.mem.Allocator, cfg: *zig_gen.FunctionConfig) !struct {
 fn convert_bound_args(alloc: std.mem.Allocator, cfg: *zig_gen.FunctionConfig) !void {
     var arr = std.ArrayList(zig_gen.BoundCheckedArg).init(alloc);
 
-    for (cfg.fun.arg_types, 0..) |typ, idx| {
+    outer: for (cfg.fun.arg_types, 0..) |typ, idx| {
+        if(cfg.ret_args) | ret_args | {
+            for(ret_args) | ret_idx | {
+                if(ret_idx == idx) {
+                    continue :outer;
+                }
+            }
+        }
         if (std.mem.eql(u8, zig_gen.sanify_typ(typ), "double *")) {
             // Find what kind of bounds we have...
             var nbound: zig_gen.BoundCheckedArg = undefined;
@@ -136,7 +143,17 @@ fn skip_fn(fun: parser.ParsedCFunction, fout: std.fs.File) !bool {
     if (std.mem.eql(u8, fun.name, "gsl_sf_bessel_sequence_Jnu_e")) {
         try fout.writeAll(@embedFile("../wrap/manual/sf/sequence_Jnu_e.zig"));
         return true;
+    } else if(std.mem.eql(u8, fun.name, "gsl_sf_coulomb_wave_FG_e")) {
+        try fout.writeAll(@embedFile("../wrap/manual/sf/coulomb_wave_FG.zig"));
+        return true;
+    } else if(std.mem.eql(u8, fun.name, "gsl_sf_angle_restrict_symm_e")) {
+        try fout.writeAll(@embedFile("../wrap/manual/sf/angle_restrict_symm_e.zig"));
+        return true;
+    } else if(std.mem.eql(u8, fun.name, "gsl_sf_angle_restrict_pos_e")) {
+        try fout.writeAll(@embedFile("../wrap/manual/sf/angle_restrict_pos_e.zig"));
+        return true;
     }
+
     return false;
 }
 

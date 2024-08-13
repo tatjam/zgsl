@@ -88,7 +88,7 @@ pub fn parse_doc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFuncti
         parsed += 3;
 
         // Make sure next line is not another doc, otherwise skip to it
-        if(block[parsed] == '/') {
+        if(parsed < block.len and block[parsed] == '/') {
             return try parse_doc(alloc, block[parsed..], to) + parsed;
         }
 
@@ -149,7 +149,7 @@ pub fn sanitize_type(alloc: std.mem.Allocator, typ: []const u8) ![]u8 {
     var out = try alloc.alloc(u8, typ.len);
     var p: usize = 0;
 
-    var tokens = std.mem.splitAny(u8, typ, " ");
+    var tokens = std.mem.splitAny(u8, typ, " \n");
     while (tokens.next()) |tok| {
         if (tok.len == 0) {
             continue;
@@ -173,7 +173,9 @@ pub fn sanitize_type(alloc: std.mem.Allocator, typ: []const u8) ![]u8 {
 
 pub fn parse_fnc_ret_and_name(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFunction) !usize {
     const open_par = std.mem.indexOf(u8, block, "(") orelse return 0;
-    const last_space = std.mem.lastIndexOf(u8, block[0..open_par], " ") orelse return 0;
+    const last_space = std.mem.lastIndexOf(u8, block[0..open_par], " ") 
+        orelse std.mem.lastIndexOf(u8, block[0..open_par], "\n") 
+        orelse return 0;
 
     to.rettype = try sanitize_type(alloc, block[0..last_space]);
     to.name = try alloc.alloc(u8, open_par - last_space - 1);
@@ -201,16 +203,25 @@ pub fn parse_fnc_argument(alloc: std.mem.Allocator, block: []const u8, to: *Pars
 
     const last_space = std.mem.lastIndexOf(u8, block[0..end], " ") orelse return 0;
 
+
     if (!first) {
         to.arg_types = try alloc.realloc(to.arg_types, to.arg_types.len + 1);
         to.arg_names = try alloc.realloc(to.arg_names, to.arg_names.len + 1);
     }
 
-    to.arg_types[to.arg_types.len - 1] = try sanitize_type(alloc, block[0..last_space]);
-    to.arg_names[to.arg_names.len - 1] = try alloc.alloc(u8, end - last_space - 1);
+    // Special case: pointer moves left 
+    if(block[last_space + 1] == '*') {
+        // Include ptr in type
+        to.arg_types[to.arg_types.len - 1] = try sanitize_type(alloc, block[0..last_space + 2]);
+        // And not in name
+        to.arg_names[to.arg_names.len - 1] = try alloc.alloc(u8, end - last_space - 2);
+        std.mem.copyForwards(u8, to.arg_names[to.arg_names.len - 1], block[(last_space + 2)..end]);
+    } else {
+        to.arg_types[to.arg_types.len - 1] = try sanitize_type(alloc, block[0..last_space]);
+        to.arg_names[to.arg_names.len - 1] = try alloc.alloc(u8, end - last_space - 1);
 
-    std.mem.copyForwards(u8, to.arg_names[to.arg_names.len - 1], block[(last_space + 1)..end]);
-
+        std.mem.copyForwards(u8, to.arg_names[to.arg_names.len - 1], block[(last_space + 1)..end]);
+    }
     // +1 because the args start without the comma
     return end + 1;
 }
@@ -259,9 +270,9 @@ pub fn parse_block(alloc: std.mem.Allocator, block: []const u8) ![]ParsedCFuncti
         }
         const pd = try parse_doc(alloc, block[p..], &out[out.len - 1]);
         p += pd;
-        if(pd == 0) {
-            out[out.len - 1].doc = out[0].doc;
-            out[out.len - 1].exceptions = out[0].exceptions;
+        if(pd == 0 and out.len > 1) {
+            out[out.len - 1].doc = out[out.len - 2].doc;
+            out[out.len - 1].exceptions = out[out.len - 2].exceptions;
         }
         const np = try parse_fnc(alloc, block[p..], &out[out.len - 1]);
         if (np == 0 or p == block.len) {

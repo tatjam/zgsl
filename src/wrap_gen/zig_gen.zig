@@ -291,7 +291,7 @@ pub fn build_ret(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
             try build_ret_single(&out, cfg.fun.arg_types[ret_args[0]]);
         } else {
             // Anonymous struct
-            try out.appendSlice(".{");
+            try out.appendSlice("struct {");
             for (ret_args) |idx| {
                 try out.appendSlice(cfg.fun.arg_names[idx]);
                 try out.appendSlice(": ");
@@ -329,6 +329,9 @@ pub fn convert_type_to_zig(typ: []const u8) []const u8 {
         return "u32";
     } else if (std.mem.eql(u8, sane_typ, "gsl_mode_t")) {
         return "Precision";
+    } else if(std.mem.eql(u8, sane_typ, "double *")) {
+        // Cast to non pointer, this is a return type!
+        return "f64";
     }
 
     unreachable;
