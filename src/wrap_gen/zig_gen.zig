@@ -59,7 +59,7 @@ pub const FunctionConfig = struct {
 
 pub fn set_exceptions(fun: *FunctionConfig, val: bool) void {
     const tinfo = comptime @typeInfo(ExceptionsPossible).Struct;
-    inline for(tinfo.fields) |field| {
+    inline for (tinfo.fields) |field| {
         @field(fun.exceptions, field.name) = val;
     }
 }
@@ -71,70 +71,70 @@ pub fn make_default_config(fun: parser.ParsedCFunction) !FunctionConfig {
     set_exceptions(&out, false);
     var has_any = false;
     // try to parse exceptions from doc, if any
-    for(fun.exceptions) |excp| {
-        if(std.mem.eql(u8, excp, "GSL_EDOM")) {
+    for (fun.exceptions) |excp| {
+        if (std.mem.eql(u8, excp, "GSL_EDOM")) {
             out.exceptions.domain = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ERANGE")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ERANGE")) {
             out.exceptions.range = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EFAULT")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EFAULT")) {
             out.exceptions.invalid_ptr = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EINVAL")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EINVAL")) {
             out.exceptions.invalid_value = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EFAILED")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EFAILED")) {
             out.exceptions.generic_failure = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EFACTOR")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EFACTOR")) {
             out.exceptions.factor = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ESANITY")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ESANITY")) {
             out.exceptions.sanity = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ENOMEM")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ENOMEM")) {
             out.exceptions.no_mem = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EBADFUNC")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EBADFUNC")) {
             out.exceptions.bad_func = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ERUNAWAY")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ERUNAWAY")) {
             out.exceptions.run_away = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EMAXITER")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EMAXITER")) {
             out.exceptions.max_iter = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EZERODIV")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EZERODIV")) {
             out.exceptions.zero_div = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EBADTOL")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EBADTOL")) {
             out.exceptions.bad_tol = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ETOL")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ETOL")) {
             out.exceptions.tol = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EUNDRFLW")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EUNDRFLW")) {
             out.exceptions.underflow = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EOVRFLW")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EOVRFLW")) {
             out.exceptions.overflow = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ELOSS")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ELOSS")) {
             out.exceptions.loss = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EROUND")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EROUND")) {
             out.exceptions.round = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EBADLEN")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EBADLEN")) {
             out.exceptions.bad_len = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ENOTSQR")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ENOTSQR")) {
             out.exceptions.not_square = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ESING")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ESING")) {
             out.exceptions.singular = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EDIVERGE")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EDIVERGE")) {
             out.exceptions.diverge = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EUNSUP")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EUNSUP")) {
             out.exceptions.unsup = true;
-        } else if(std.mem.eql(u8, excp, "GSL_EUNIMPL")) {
+        } else if (std.mem.eql(u8, excp, "GSL_EUNIMPL")) {
             out.exceptions.unimpl = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ECACHE")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ECACHE")) {
             out.exceptions.cache = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ETABLE")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ETABLE")) {
             out.exceptions.table = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ENOPROG")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ENOPROG")) {
             out.exceptions.no_prog = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ENOPROGJ")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ENOPROGJ")) {
             out.exceptions.no_prog_j = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ETOLF")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ETOLF")) {
             out.exceptions.tol_f = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ETOLX")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ETOLX")) {
             out.exceptions.tol_x = true;
-        } else if(std.mem.eql(u8, excp, "GSL_ETOLG")) {
+        } else if (std.mem.eql(u8, excp, "GSL_ETOLG")) {
             out.exceptions.tol_g = true;
-        } else if(std.mem.eql(u8, excp, "none")) {
+        } else if (std.mem.eql(u8, excp, "none")) {
             // No exceptions, just ignore (has_any will be set to true)
         } else {
             std.log.err("Unknown exception string {s}", .{excp});
@@ -145,7 +145,7 @@ pub fn make_default_config(fun: parser.ParsedCFunction) !FunctionConfig {
     }
 
     // Worst case scenario, assume every one is possible
-    if(!has_any) {
+    if (!has_any) {
         set_exceptions(&out, true);
     }
 
@@ -300,7 +300,7 @@ pub fn build_ret(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
             }
             try out.appendSlice("}");
         }
-    } else if(cfg.bound_checked_args) |_| {
+    } else if (cfg.bound_checked_args) |_| {
         try out.appendSlice("void");
     } else {
         // Must be a single return value
@@ -329,7 +329,7 @@ pub fn convert_type_to_zig(typ: []const u8) []const u8 {
         return "u32";
     } else if (std.mem.eql(u8, sane_typ, "gsl_mode_t")) {
         return "Precision";
-    } else if(std.mem.eql(u8, sane_typ, "double *")) {
+    } else if (std.mem.eql(u8, sane_typ, "double *")) {
         // Cast to non pointer, this is a return type!
         return "f64";
     }
@@ -406,9 +406,9 @@ pub fn build_invoke(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
     }
 
     // TODO: Bounds check slices
-    for(cfg.fun.arg_names, 0..) |name, idx| {
+    for (cfg.fun.arg_names, 0..) |name, idx| {
         const as_bcheck = get_as_bound_checked(idx, cfg);
-        if(as_bcheck) |bcheck| {
+        if (as_bcheck) |bcheck| {
             try out.appendSlice("std.debug.assert(");
             try out.appendSlice(name);
             // We are fairly strict with the equality, the user can always pass sub-slices
@@ -419,7 +419,6 @@ pub fn build_invoke(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
             try out.appendSlice(" + 1);\n");
         }
     }
-
 
     // Invoke the function, and store its return value
     try out.appendSlice("const ret = ");
@@ -460,100 +459,100 @@ pub fn build_err_convert(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
         try out.appendSlice("c_gsl.GSL_FAILURE => return GslError.Failure,");
     }
     if (cfg.exceptions.cont) {
-    try out.appendSlice("c_gsl.GSL_CONTINUE => return GslError.Continue,");
+        try out.appendSlice("c_gsl.GSL_CONTINUE => return GslError.Continue,");
     }
     if (cfg.exceptions.domain) {
-    try out.appendSlice("c_gsl.GSL_EDOM => return GslError.Domain,");
+        try out.appendSlice("c_gsl.GSL_EDOM => return GslError.Domain,");
     }
     if (cfg.exceptions.range) {
-    try out.appendSlice("c_gsl.GSL_ERANGE => return GslError.Range,");
+        try out.appendSlice("c_gsl.GSL_ERANGE => return GslError.Range,");
     }
     if (cfg.exceptions.invalid_ptr) {
-    try out.appendSlice("c_gsl.GSL_EFAULT => return GslError.InvalidPointer,");
+        try out.appendSlice("c_gsl.GSL_EFAULT => return GslError.InvalidPointer,");
     }
     if (cfg.exceptions.invalid_value) {
-    try out.appendSlice("c_gsl.GSL_EINVAL => return GslError.InvalidValue,");
+        try out.appendSlice("c_gsl.GSL_EINVAL => return GslError.InvalidValue,");
     }
     if (cfg.exceptions.generic_failure) {
-    try out.appendSlice("c_gsl.GSL_EFAILUED => return GslError.GenericFailure,");
+        try out.appendSlice("c_gsl.GSL_EFAILUED => return GslError.GenericFailure,");
     }
     if (cfg.exceptions.factor) {
-    try out.appendSlice("c_gsl.GSL_EFACTOR => return GslError.Factorization,");
+        try out.appendSlice("c_gsl.GSL_EFACTOR => return GslError.Factorization,");
     }
     if (cfg.exceptions.sanity) {
-    try out.appendSlice("c_gsl.GSL_ESANITY => return GslError.SanityCheck,");
+        try out.appendSlice("c_gsl.GSL_ESANITY => return GslError.SanityCheck,");
     }
     if (cfg.exceptions.no_mem) {
-    try out.appendSlice("c_gsl.GSL_ENOMEM => return GslError.NoMemory,");
+        try out.appendSlice("c_gsl.GSL_ENOMEM => return GslError.NoMemory,");
     }
     if (cfg.exceptions.bad_func) {
-    try out.appendSlice("c_gsl.GSL_EBADFUNC => return GslError.BadFunction,");
+        try out.appendSlice("c_gsl.GSL_EBADFUNC => return GslError.BadFunction,");
     }
     if (cfg.exceptions.run_away) {
-    try out.appendSlice("c_gsl.GSL_ERUNAWAY => return GslError.RunAway,");
+        try out.appendSlice("c_gsl.GSL_ERUNAWAY => return GslError.RunAway,");
     }
     if (cfg.exceptions.max_iter) {
-    try out.appendSlice("c_gsl.GSL_EMAXITER => return GslError.MaxIter,");
+        try out.appendSlice("c_gsl.GSL_EMAXITER => return GslError.MaxIter,");
     }
     if (cfg.exceptions.zero_div) {
-    try out.appendSlice("c_gsl.GSL_EZERODIV => return GslError.ZeroDiv,");
+        try out.appendSlice("c_gsl.GSL_EZERODIV => return GslError.ZeroDiv,");
     }
     if (cfg.exceptions.bad_tol) {
-    try out.appendSlice("c_gsl.GSL_EBADTOL => return GslError.BadTolerance,");
+        try out.appendSlice("c_gsl.GSL_EBADTOL => return GslError.BadTolerance,");
     }
     if (cfg.exceptions.tol) {
-    try out.appendSlice("c_gsl.GSL_ETOL => return GslError.Tolerance,");
+        try out.appendSlice("c_gsl.GSL_ETOL => return GslError.Tolerance,");
     }
     if (cfg.exceptions.underflow) {
-    try out.appendSlice("c_gsl.GSL_EUNDRFLW => return GslError.Underflow,");
+        try out.appendSlice("c_gsl.GSL_EUNDRFLW => return GslError.Underflow,");
     }
     if (cfg.exceptions.overflow) {
-    try out.appendSlice("c_gsl.GSL_EOVRFLW => return GslError.Overflow,");
+        try out.appendSlice("c_gsl.GSL_EOVRFLW => return GslError.Overflow,");
     }
     if (cfg.exceptions.loss) {
-    try out.appendSlice("c_gsl.GSL_ELOSS => return GslError.LossOfAccuracy,");
+        try out.appendSlice("c_gsl.GSL_ELOSS => return GslError.LossOfAccuracy,");
     }
     if (cfg.exceptions.round) {
-    try out.appendSlice("c_gsl.GSL_EROUND => return GslError.Roundoff,");
+        try out.appendSlice("c_gsl.GSL_EROUND => return GslError.Roundoff,");
     }
     if (cfg.exceptions.bad_len) {
-    try out.appendSlice("c_gsl.GSL_EBADLEN => return GslError.BadLength,");
+        try out.appendSlice("c_gsl.GSL_EBADLEN => return GslError.BadLength,");
     }
     if (cfg.exceptions.not_square) {
-    try out.appendSlice("c_gsl.GSL_ENOTSQR => return GslError.NotSquare,");
+        try out.appendSlice("c_gsl.GSL_ENOTSQR => return GslError.NotSquare,");
     }
     if (cfg.exceptions.singular) {
-    try out.appendSlice("c_gsl.GSL_ESING => return GslError.Singularity,");
+        try out.appendSlice("c_gsl.GSL_ESING => return GslError.Singularity,");
     }
     if (cfg.exceptions.diverge) {
-    try out.appendSlice("c_gsl.GSL_EDIVERGE => return GslError.Divergent,");
+        try out.appendSlice("c_gsl.GSL_EDIVERGE => return GslError.Divergent,");
     }
     if (cfg.exceptions.unsup) {
-    try out.appendSlice("c_gsl.GSL_EUNSUP => return GslError.Unsupported,");
+        try out.appendSlice("c_gsl.GSL_EUNSUP => return GslError.Unsupported,");
     }
     if (cfg.exceptions.unimpl) {
-    try out.appendSlice("c_gsl.GSL_EUNIMPL => return GslError.Unimplemented,");
+        try out.appendSlice("c_gsl.GSL_EUNIMPL => return GslError.Unimplemented,");
     }
     if (cfg.exceptions.cache) {
-    try out.appendSlice("c_gsl.GSL_ECACHE => return GslError.CacheLimit,");
+        try out.appendSlice("c_gsl.GSL_ECACHE => return GslError.CacheLimit,");
     }
     if (cfg.exceptions.table) {
-    try out.appendSlice("c_gsl.GSL_ETABLE => return GslError.TableLimit,");
+        try out.appendSlice("c_gsl.GSL_ETABLE => return GslError.TableLimit,");
     }
     if (cfg.exceptions.no_prog) {
-    try out.appendSlice("c_gsl.GSL_ENOPROG => return GslError.NoProgress,");
+        try out.appendSlice("c_gsl.GSL_ENOPROG => return GslError.NoProgress,");
     }
     if (cfg.exceptions.no_prog_j) {
-    try out.appendSlice("c_gsl.GSL_ENOPROGJ => return GslError.NoProgressJacobian,");
+        try out.appendSlice("c_gsl.GSL_ENOPROGJ => return GslError.NoProgressJacobian,");
     }
     if (cfg.exceptions.tol_f) {
-    try out.appendSlice("c_gsl.GSL_ETOLF => return GslError.ToleranceF,");
+        try out.appendSlice("c_gsl.GSL_ETOLF => return GslError.ToleranceF,");
     }
     if (cfg.exceptions.tol_x) {
-    try out.appendSlice("c_gsl.GSL_ETOLX => return GslError.ToleranceX,");
+        try out.appendSlice("c_gsl.GSL_ETOLX => return GslError.ToleranceX,");
     }
     if (cfg.exceptions.tol_g) {
-    try out.appendSlice("c_gsl.GSL_ETOLG => return GslError.ToleranceG,");
+        try out.appendSlice("c_gsl.GSL_ETOLG => return GslError.ToleranceG,");
     }
     try out.appendSlice("else => unreachable,\n");
     try out.appendSlice("}\n");

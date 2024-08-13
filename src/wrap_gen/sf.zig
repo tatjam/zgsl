@@ -5,7 +5,7 @@ const std = @import("std");
 const parser = @import("c_parse.zig");
 const zig_gen = @import("zig_gen.zig");
 
-pub fn emit_header(fname: [] const u8, fout: std.fs.File) !void {
+pub fn emit_header(fname: []const u8, fout: std.fs.File) !void {
     _ = fname; // autofix
     try fout.writeAll("const sf = @import(\"zgsl.zig\").sf;\n");
     try fout.writeAll("const Result = sf.Result;\n");
@@ -25,6 +25,7 @@ fn emit_function_header(fout: std.fs.File, cfg: zig_gen.FunctionConfig, args: []
     //  directly promoted to the upper namespace in the root file
     //  (Conditional compilation guarantees no wasted resources)
     while (tokens.next()) |tok| {
+        if (std.mem.eql(u8, tok, "airy")) continue;
         if (std.mem.eql(u8, tok, "gsl")) continue;
         if (std.mem.eql(u8, tok, "sf")) continue;
         if (std.mem.eql(u8, tok, "bessel")) continue;
@@ -80,7 +81,7 @@ fn convert_result_args(alloc: std.mem.Allocator, cfg: *zig_gen.FunctionConfig) !
             try arr.append(idx);
         } else if (std.mem.eql(u8, typ, "gsl_sf_result_e10 *")) {
             try arr.append(idx);
-        } else if(std.mem.eql(u8, name, "sgn")) {
+        } else if (std.mem.eql(u8, name, "sgn")) {
             try arr.append(idx);
         }
     }
@@ -116,9 +117,9 @@ fn convert_bound_args(alloc: std.mem.Allocator, cfg: *zig_gen.FunctionConfig) !v
     var arr = std.ArrayList(zig_gen.BoundCheckedArg).init(alloc);
 
     outer: for (cfg.fun.arg_types, 0..) |typ, idx| {
-        if(cfg.ret_args) | ret_args | {
-            for(ret_args) | ret_idx | {
-                if(ret_idx == idx) {
+        if (cfg.ret_args) |ret_args| {
+            for (ret_args) |ret_idx| {
+                if (ret_idx == idx) {
                     continue :outer;
                 }
             }
@@ -143,13 +144,13 @@ fn skip_fn(fun: parser.ParsedCFunction, fout: std.fs.File) !bool {
     if (std.mem.eql(u8, fun.name, "gsl_sf_bessel_sequence_Jnu_e")) {
         try fout.writeAll(@embedFile("../wrap/manual/sf/sequence_Jnu_e.zig"));
         return true;
-    } else if(std.mem.eql(u8, fun.name, "gsl_sf_coulomb_wave_FG_e")) {
+    } else if (std.mem.eql(u8, fun.name, "gsl_sf_coulomb_wave_FG_e")) {
         try fout.writeAll(@embedFile("../wrap/manual/sf/coulomb_wave_FG.zig"));
         return true;
-    } else if(std.mem.eql(u8, fun.name, "gsl_sf_angle_restrict_symm_e")) {
+    } else if (std.mem.eql(u8, fun.name, "gsl_sf_angle_restrict_symm_e")) {
         try fout.writeAll(@embedFile("../wrap/manual/sf/angle_restrict_symm_e.zig"));
         return true;
-    } else if(std.mem.eql(u8, fun.name, "gsl_sf_angle_restrict_pos_e")) {
+    } else if (std.mem.eql(u8, fun.name, "gsl_sf_angle_restrict_pos_e")) {
         try fout.writeAll(@embedFile("../wrap/manual/sf/angle_restrict_pos_e.zig"));
         return true;
     }

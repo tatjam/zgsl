@@ -8,11 +8,11 @@ pub const Result = gsl.gsl_sf_result;
 /// value.
 pub const ResultE10 = gsl.gsl_sf_result_e10;
 
-/// Specifies precision of computation for some special functions, approximately: 
+/// Specifies precision of computation for some special functions, approximately:
 /// DOUBLE: 2*10e-16
 /// SINGLE: 10e-7
 /// APPROX: 5*10e-4
-pub const Precision = enum(c_int){DOUBLE = 0, SINGLE = 1, APPROX = 2};
+pub const Precision = enum(c_int) { DOUBLE = 0, SINGLE = 1, APPROX = 2 };
 
 /// Converts a scaled result to a normal result. Note that overflow or underflow
 /// are not considered errors here, but they will end up in a inf / -inf result
@@ -101,7 +101,7 @@ pub const hyperg_2F1_e = hyperg_s.hyperg_2F1_e;
 pub const hyperg_2F1_conj = hyperg_s.hyperg_2F1_conj;
 pub const hyperg_2F1_conj_e = hyperg_s.hyperg_2F1_conj_e;
 pub const hyperg_2F1_conj_renorm = hyperg_s.hyperg_2F1_conj_renorm;
-pub const hyperg_2F1_conj_renorm_e= hyperg_s.hyperg_2F1_conj_renorm_e;
+pub const hyperg_2F1_conj_renorm_e = hyperg_s.hyperg_2F1_conj_renorm_e;
 pub const hyperg_2F1_renorm = hyperg_s.hyperg_2F1_renorm;
 pub const hyperg_2F1_renorm_e = hyperg_s.hyperg_2F1_renorm_e;
 pub const hyperg_U = hyperg_s.hyperg_U;

@@ -19,13 +19,13 @@ pub fn preprocess(alloc: std.mem.Allocator, data: []const u8) ![]const u8 {
     // Iterate over data line by line
     var it = std.mem.splitAny(u8, data, "\n");
     while (it.next()) |x| {
-        if(inifdef == 0) {
-            if(std.mem.startsWith(u8, x, "#endif")) {
+        if (inifdef == 0) {
+            if (std.mem.startsWith(u8, x, "#endif")) {
                 inifdef -= 1;
             }
         } else {
             if (std.mem.startsWith(u8, x, "#")) {
-                if(std.mem.startsWith(u8, x, "#ifdef")) {
+                if (std.mem.startsWith(u8, x, "#ifdef")) {
                     inifdef += 1;
                 }
                 continue;
@@ -88,7 +88,7 @@ pub fn parse_doc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFuncti
         parsed += 3;
 
         // Make sure next line is not another doc, otherwise skip to it
-        if(parsed < block.len and block[parsed] == '/') {
+        if (parsed < block.len and block[parsed] == '/') {
             return try parse_doc(alloc, block[parsed..], to) + parsed;
         }
 
@@ -135,8 +135,7 @@ pub fn parse_doc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFuncti
         } else {
             to.exceptions.len = 0;
         }
-    }
-    else {
+    } else {
         to.doc.len = 0;
         to.exceptions.len = 0;
     }
@@ -173,9 +172,7 @@ pub fn sanitize_type(alloc: std.mem.Allocator, typ: []const u8) ![]u8 {
 
 pub fn parse_fnc_ret_and_name(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFunction) !usize {
     const open_par = std.mem.indexOf(u8, block, "(") orelse return 0;
-    const last_space = std.mem.lastIndexOf(u8, block[0..open_par], " ") 
-        orelse std.mem.lastIndexOf(u8, block[0..open_par], "\n") 
-        orelse return 0;
+    const last_space = std.mem.lastIndexOf(u8, block[0..open_par], " ") orelse std.mem.lastIndexOf(u8, block[0..open_par], "\n") orelse return 0;
 
     to.rettype = try sanitize_type(alloc, block[0..last_space]);
     to.name = try alloc.alloc(u8, open_par - last_space - 1);
@@ -203,16 +200,15 @@ pub fn parse_fnc_argument(alloc: std.mem.Allocator, block: []const u8, to: *Pars
 
     const last_space = std.mem.lastIndexOf(u8, block[0..end], " ") orelse return 0;
 
-
     if (!first) {
         to.arg_types = try alloc.realloc(to.arg_types, to.arg_types.len + 1);
         to.arg_names = try alloc.realloc(to.arg_names, to.arg_names.len + 1);
     }
 
-    // Special case: pointer moves left 
-    if(block[last_space + 1] == '*') {
+    // Special case: pointer moves left
+    if (block[last_space + 1] == '*') {
         // Include ptr in type
-        to.arg_types[to.arg_types.len - 1] = try sanitize_type(alloc, block[0..last_space + 2]);
+        to.arg_types[to.arg_types.len - 1] = try sanitize_type(alloc, block[0 .. last_space + 2]);
         // And not in name
         to.arg_names[to.arg_names.len - 1] = try alloc.alloc(u8, end - last_space - 2);
         std.mem.copyForwards(u8, to.arg_names[to.arg_names.len - 1], block[(last_space + 2)..end]);
@@ -228,7 +224,7 @@ pub fn parse_fnc_argument(alloc: std.mem.Allocator, block: []const u8, to: *Pars
 
 // Returns the number of characters parsed as the function
 pub fn parse_fnc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFunction) !usize {
-    if(std.mem.startsWith(u8, block, "typedef")) {
+    if (std.mem.startsWith(u8, block, "typedef")) {
         return 0;
     }
     // First parse the return type and function name
@@ -270,7 +266,7 @@ pub fn parse_block(alloc: std.mem.Allocator, block: []const u8) ![]ParsedCFuncti
         }
         const pd = try parse_doc(alloc, block[p..], &out[out.len - 1]);
         p += pd;
-        if(pd == 0 and out.len > 1) {
+        if (pd == 0 and out.len > 1) {
             out[out.len - 1].doc = out[out.len - 2].doc;
             out[out.len - 1].exceptions = out[out.len - 2].exceptions;
         }

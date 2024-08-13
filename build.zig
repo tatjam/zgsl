@@ -92,7 +92,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/wrap/zgsl.zig"),
         .target = target,
         .optimize = optimize,
-        });
+    });
 
     wrap_module.addIncludePath(wf.getDirectory().path(b, "include"));
     b.installArtifact(wrapper_gen_tool);
@@ -121,7 +121,7 @@ pub fn build(b: *std.Build) void {
     const check = b.step("check", "ZLS compile check (no binary emit)");
     check.dependOn(&lib_check.step);
 
-    // Wrapper updating 
+    // Wrapper updating
 
     const source_files = b.addUpdateSourceFiles();
 
@@ -141,9 +141,6 @@ pub fn build(b: *std.Build) void {
         source_files.step.dependOn(&wrap_gen_step.step);
         wrapper_gen_step.dependOn(&source_files.step);
     }
-
-
-
 }
 
 const WrapperPair = struct {
