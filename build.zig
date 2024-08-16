@@ -55,6 +55,7 @@ pub fn build(b: *std.Build) void {
 
     // Copy gsl headers, if the user wants to use those directly
     const wf = b.addNamedWriteFiles("gsl_include");
+    wf.step.dependOn(&header_gen_step.step);
     _ = wf.addCopyDirectory(gsl_files, "include", .{ .include_extensions = &[_][]const u8{".h"} });
 
     const headers_dir = b.addInstallDirectory(.{
@@ -95,6 +96,7 @@ pub fn build(b: *std.Build) void {
     });
 
     wrap_module.addIncludePath(wf.getDirectory().path(b, "include"));
+
     b.installArtifact(wrapper_gen_tool);
 
     // Unit testing and ZLS check
