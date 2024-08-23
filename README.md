@@ -63,7 +63,18 @@ const result = try sf.bessel.J0_e(5.0);
 std.debug.print("Bessel J0(5.0) = {}, error = {}\n", .{result.val, result.err});
 ```
 
-To learn more about the wrapper, check the tests contained in `TO BE SPECIFIED`.
+To learn more about the wrapper, check the tests contained in `src/test`, usage should be intuitive
+coming from using the GSL library in C or other languages.
+
+**It's heavily recommended** that you disable the default GSL error handler, as otherwise Zig errors 
+will almost never be useful (GSL will panic before you can handle the errors). To do so use the 
+function:
+
+```
+const gsl = @import("zgsl")
+//...
+gsl.set_error_handler_off();
+```
 
 ### Using the "raw" C library
 
@@ -106,7 +117,7 @@ and header files) as you typically would.
 
 - [ ]	Mathematical functions
 - [ ]	Polynomials
-- [ ]	Special functions
+- [x]	Special functions
 - [ ]	Vectors and Matrices
 - [ ]	Permutations
 - [ ]	Combinations
