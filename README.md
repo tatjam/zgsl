@@ -70,7 +70,7 @@ coming from using the GSL library in C or other languages.
 will almost never be useful (GSL will panic before you can handle the errors). To do so use the 
 function:
 
-```
+```Zig
 const gsl = @import("zgsl")
 //...
 gsl.set_error_handler_off();
