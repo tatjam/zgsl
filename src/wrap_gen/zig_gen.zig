@@ -484,7 +484,7 @@ pub fn build_err_convert(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
         try out.appendSlice("c_gsl.GSL_EINVAL => return GslError.InvalidValue,");
     }
     if (cfg.exceptions.generic_failure) {
-        try out.appendSlice("c_gsl.GSL_EFAILUED => return GslError.GenericFailure,");
+        try out.appendSlice("c_gsl.GSL_EFAILED => return GslError.GenericFailure,");
     }
     if (cfg.exceptions.factor) {
         try out.appendSlice("c_gsl.GSL_EFACTOR => return GslError.Factorization,");

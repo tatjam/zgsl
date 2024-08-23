@@ -28,7 +28,15 @@ const zgsl = b.dependency("zgsl", .{
 	.target = target,
 	.optimize = optimize
 });
+
+// ... for example, if you generate an executable ... 
+
+const gsl_lib = zgsl.artifact("gsl");
+exe.linkLibrary(gsl_lib);
+exe.linkLibC();
+exe.step.dependOn(&zgsl.namedWriteFiles("gsl_include").step);
 ```
+
 
 Afterwards, depending on whether you want to use the wrapper or the raw functions (or both):
 
@@ -38,7 +46,11 @@ To use the Zig wrapper, you will use the module:
 
 ```Zig    
 exe.root_module.addImport("zgsl", zgsl.module("wrapper"));
+exe.step.dependOn(&zgsl.builder.top_level_steps.get("wrap").?.step);
 ```
+
+The second line guarantees wrappers are generated, as otherwise you would have to manually run 
+`zig build wrap` on the downloaded dependency.
 
 Now you have access to the wrapper under the name `zgsl`. For example, to compute a Bessel function:
 
@@ -59,11 +71,7 @@ In this case you also have to include the GSL header files and link with the
 library, which can be done as follows:
 
 ```Zig    
-const gsl_lib = zgsl.artifact("gsl");
-exe.linkLibrary(gsl_lib);
-exe.step.dependOn(&zgsl.namedWriteFiles("gsl_include").step);
 exe.addIncludePath(zgsl.namedWriteFiles("gsl_include").getDirectory().path(b, "include"));
-exe.linkLibC();
 ```
 
 Now you can directly call the GSL. The same example as before would be implemented as follows:
