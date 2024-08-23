@@ -105,6 +105,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    lib_unit_tests.addIncludePath(wf.getDirectory().path(b, "include"));
+    lib_unit_tests.linkLibC();
+    lib_unit_tests.linkLibrary(gsl_lib);
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 
     const test_step = b.step("test", "Run unit tests");

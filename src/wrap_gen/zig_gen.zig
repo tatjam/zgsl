@@ -64,6 +64,16 @@ pub fn set_exceptions(fun: *FunctionConfig, val: bool) void {
     }
 }
 
+pub fn all_set(fun: FunctionConfig) bool {
+    const tinfo = comptime @typeInfo(ExceptionsPossible).Struct;
+    inline for (tinfo.fields) |field| {
+        if (!@field(fun.exceptions, field.name)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 pub fn make_default_config(fun: parser.ParsedCFunction) !FunctionConfig {
     var out: FunctionConfig = undefined;
     out.fun = fun;

@@ -161,6 +161,17 @@ fn skip_fn(fun: parser.ParsedCFunction, fout: std.fs.File) !bool {
 pub fn wrap_sf(alloc: std.mem.Allocator, fout: std.fs.File, fun: parser.ParsedCFunction) !void {
     if (try skip_fn(fun, fout)) return;
     var cfg = try zig_gen.make_default_config(fun);
+    if (zig_gen.all_set(cfg)) {
+        // Sane defaults
+        zig_gen.set_exceptions(&cfg, false);
+        cfg.exceptions.domain = true;
+        cfg.exceptions.invalid_value = true;
+        cfg.exceptions.overflow = true;
+        cfg.exceptions.underflow = true;
+        cfg.exceptions.loss = true;
+    }
+    // Loss of accuracy can happen almost everywhere, but is not clearly indicated
+    cfg.exceptions.loss = true;
 
     try convert_result_args(alloc, &cfg);
     try convert_bound_args(alloc, &cfg);

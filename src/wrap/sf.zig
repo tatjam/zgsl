@@ -16,7 +16,7 @@ pub const Precision = enum(c_int) { DOUBLE = 0, SINGLE = 1, APPROX = 2 };
 
 /// Converts a scaled result to a normal result. Note that overflow or underflow
 /// are not considered errors here, but they will end up in a inf / -inf result
-pub fn smash(r: ResultE10) err.OverflowOrUnderflowError!Result {
+pub fn smash(r: ResultE10) error{ Overflow, Underflow }!Result {
     var out: Result = undefined;
     const retval = gsl.gsl_sf_result_smash_e(&r, &out);
     switch (retval) {
