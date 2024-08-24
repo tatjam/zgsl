@@ -4,8 +4,7 @@ const err = @import("errors.zig");
 /// Value and error estimate for special function invocation
 pub const Result = gsl.gsl_sf_result;
 /// Same as Result, but with scaling applied to prevent overflowing
-/// Real result is thus val * 10^(e10). Uses smash function to obtain this
-/// value.
+/// Real result is thus val * 10^(e10). Uses smash function to obtain this value.
 pub const ResultE10 = gsl.gsl_sf_result_e10;
 
 /// Specifies precision of computation for some special functions, approximately:
@@ -15,7 +14,9 @@ pub const ResultE10 = gsl.gsl_sf_result_e10;
 pub const Precision = enum(c_int) { DOUBLE = 0, SINGLE = 1, APPROX = 2 };
 
 /// Converts a scaled result to a normal result. Note that overflow or underflow
-/// are not considered errors here, but they will end up in a inf / -inf result
+/// are considered errors, and indicate respectively:
+/// - Return value is infinite (with infinite error)
+/// - Return value is 0 (with error below minimum representable float)
 pub fn smash(r: ResultE10) error{ Overflow, Underflow }!Result {
     var out: Result = undefined;
     const retval = gsl.gsl_sf_result_smash_e(&r, &out);
@@ -76,7 +77,6 @@ pub const synchrotron_2 = synchrotron_s.synchrotron_2;
 pub const synchrotron_1_e = synchrotron_s.synchrotron_1_e;
 pub const synchrotron_2_e = synchrotron_s.synchrotron_2_e;
 
-// elljac
 const elljac_s = @import("manual/sf/elljac.zig");
 
 const clausen_s = @import("wrapped_sf_clausen.zig");

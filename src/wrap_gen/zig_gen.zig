@@ -415,7 +415,8 @@ pub fn build_invoke(alloc: std.mem.Allocator, cfg: FunctionConfig) ![]u8 {
         }
     }
 
-    // TODO: Bounds check slices
+    // Inserts bound checking for slices, to prevent out of bound access
+    // which is totally ignored by GSL (of course, unless it segfaults!)
     for (cfg.fun.arg_names, 0..) |name, idx| {
         const as_bcheck = get_as_bound_checked(idx, cfg);
         if (as_bcheck) |bcheck| {

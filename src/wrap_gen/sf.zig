@@ -184,12 +184,6 @@ pub fn wrap_sf(alloc: std.mem.Allocator, fout: std.fs.File, fun: parser.ParsedCF
     try fout.writeAll(doc);
 
     try emit_function_header(fout, cfg, args, err, ret);
-    if (std.mem.eql(u8, fun.rettype, "int")) {
-        // Has error handling
-
-    } else {
-        // Doesn't have error handling, "raw" wrapper
-    }
 
     const invoke = try zig_gen.build_invoke(alloc, cfg);
     try fout.writeAll(invoke);

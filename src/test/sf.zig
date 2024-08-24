@@ -26,7 +26,7 @@ fn over_all_functions_filtered(
     }
 }
 
-inline fn is_single_arg_f64(f: std.builtin.Type.Fn) bool {
+inline fn is_single_arg_f64_e(f: std.builtin.Type.Fn) bool {
     return has_error_return(f) and f.params.len == 1 and f.params[0].type == f64;
 }
 
@@ -53,13 +53,13 @@ test "fuzz_sf_single_args_exceptions" {
     const rnd = std.crypto.random;
     gsl.set_error_handler_off();
 
-    for (0..100000) |_| {
-        // This generates plenty of invalid float values!
+    for (0..1000000) |_| {
+        // This generates plenty of invalid / weird float values!
         const v: f64 = @bitCast(rnd.int(i64));
 
         over_all_functions_filtered(
             gsl.sf,
-            is_single_arg_f64,
+            is_single_arg_f64_e,
             test_single_args_exceptions,
             v,
         );
