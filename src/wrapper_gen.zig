@@ -3,9 +3,11 @@ const parser = @import("wrap_gen/c_parse.zig");
 const fatal = @import("utils.zig").fatal;
 
 const sf = @import("wrap_gen/sf.zig");
+const fft = @import("wrap_gen/fft.zig");
 
 const Logic = enum {
     SF,
+    FFT,
 };
 
 pub fn main() !void {
@@ -62,6 +64,7 @@ pub fn main() !void {
 
             switch (logic) {
                 .SF => try sf.wrap_sf(arena, fout, func),
+                .FFT => try fft.wrap_fft(arena, fout, func),
                 else => unreachable,
             }
         }
