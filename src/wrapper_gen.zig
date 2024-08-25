@@ -21,7 +21,13 @@ pub fn main() !void {
     const input_fname = args[1];
     const output_fname = args[2];
     const logic_str = args[3];
-    const logic = if (std.mem.eql(u8, logic_str, "sf")) .SF else unreachable;
+
+    // zig fmt: off
+    const logic: Logic =
+        if (std.mem.eql(u8, logic_str, "sf"))           .SF
+        else if (std.mem.eql(u8, logic_str, "fft"))     .FFT
+        else unreachable;
+    // zig fmt: on
 
     var fin = try std.fs.cwd().openFile(input_fname, .{});
     defer fin.close();
@@ -48,7 +54,7 @@ pub fn main() !void {
 
     switch (logic) {
         .SF => try sf.emit_header(output_fname, fout),
-        else => unreachable,
+        .FFT => try fft.emit_header(output_fname, fout),
     }
 
     for (blocks.items[1..]) |block| {
@@ -65,7 +71,6 @@ pub fn main() !void {
             switch (logic) {
                 .SF => try sf.wrap_sf(arena, fout, func),
                 .FFT => try fft.wrap_fft(arena, fout, func),
-                else => unreachable,
             }
         }
     }

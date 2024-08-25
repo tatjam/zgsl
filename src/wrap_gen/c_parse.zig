@@ -172,7 +172,17 @@ pub fn sanitize_type(alloc: std.mem.Allocator, typ: []const u8) ![]u8 {
 
 pub fn parse_fnc_ret_and_name(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFunction) !usize {
     const open_par = std.mem.indexOf(u8, block, "(") orelse return 0;
-    const last_space = std.mem.lastIndexOf(u8, block[0..open_par], " ") orelse std.mem.lastIndexOf(u8, block[0..open_par], "\n") orelse return 0;
+    // special case: sometimes the function arguments are separated by another space, check for this
+    var space_limit = open_par;
+    if (block[open_par - 1] == ' ') {
+        space_limit = open_par - 1;
+    }
+
+    // zig fmt: off
+    const last_space = std.mem.lastIndexOf(u8, block[0..space_limit], " ") 
+        orelse std.mem.lastIndexOf(u8, block[0..space_limit], "\n") 
+        orelse return 0;
+    // zig fmt: on
 
     to.rettype = try sanitize_type(alloc, block[0..last_space]);
     to.name = try alloc.alloc(u8, open_par - last_space - 1);
