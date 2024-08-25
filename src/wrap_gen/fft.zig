@@ -38,7 +38,7 @@ fn wrap_radix2(
     // Function invocation
     try fout.writeAll("const ret = c_gsl.");
     try fout.writeAll(fun.name);
-    try fout.writeAll("(@ptrCast(data), stride, data.len);\n");
+    try fout.writeAll("(@ptrCast(&data), stride, data.len);\n");
     // Error translation
     try fout.writeAll("switch(ret) {\n" ++
         "c_gsl.GSL_SUCCESS => return,\n" ++
@@ -55,8 +55,6 @@ pub fn wrap_fft(alloc: std.mem.Allocator, fout: std.fs.File, fun: parser.ParsedC
 
     const is_float: bool =
         if (std.mem.indexOf(u8, fun.name, "float")) |_| true else false;
-
-    std.log.info("{s}", .{fun.name});
 
     if (std.mem.indexOf(u8, fun.name, "radix2")) |_| {
         return wrap_radix2(alloc, fout, fun, is_halfcomplex, is_float);

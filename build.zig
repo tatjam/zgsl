@@ -336,6 +336,42 @@ var wrapper_pairs = [_]WrapperPair{
         .logic = "sf",
         .fout = null,
     },
+    .{
+        .in = "include/gsl/gsl_fft_complex_float.h",
+        .out = "wrapped_fft_complex_float.zig",
+        .logic = "fft",
+        .fout = null,
+    },
+    .{
+        .in = "include/gsl/gsl_fft_complex.h",
+        .out = "wrapped_fft_complex.zig",
+        .logic = "fft",
+        .fout = null,
+    },
+    .{
+        .in = "include/gsl/gsl_fft_halfcomplex_float.h",
+        .out = "wrapped_fft_halfcomplex_float.zig",
+        .logic = "fft",
+        .fout = null,
+    },
+    .{
+        .in = "include/gsl/gsl_fft_halfcomplex.h",
+        .out = "wrapped_fft_halfcomplex.zig",
+        .logic = "fft",
+        .fout = null,
+    },
+    .{
+        .in = "include/gsl/gsl_fft_real_float.h",
+        .out = "wrapped_fft_real_float.zig",
+        .logic = "fft",
+        .fout = null,
+    },
+    .{
+        .in = "include/gsl/gsl_fft_real.h",
+        .out = "wrapped_fft_real.zig",
+        .logic = "fft",
+        .fout = null,
+    },
 };
 
 // NOTE TO USERS: If at any point you find a linker error, it's very likely
