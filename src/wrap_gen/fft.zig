@@ -24,7 +24,7 @@ fn wrap_radix2(
     // trim everything up to the radix2 (everything else is namespaced!)
     const point = std.mem.indexOf(u8, fun.name, "radix2") orelse unreachable;
     const name = try alloc.alloc(u8, fun.name.len - point);
-    std.mem.copyForwards(u8, name, fun.name[point..]);
+    @memcpy(name, fun.name[point..]);
 
     try fout.writeAll("pub fn ");
     try fout.writeAll(name);

@@ -31,7 +31,7 @@ pub fn preprocess(alloc: std.mem.Allocator, data: []const u8) ![]const u8 {
                 continue;
             }
             const xt = std.mem.trim(u8, x, " \t");
-            std.mem.copyForwards(u8, out[opos..(opos + xt.len)], xt);
+            @memcpy(out[opos..(opos + xt.len)], xt);
             opos += xt.len;
             out[opos] = '\n';
             opos += 1;
@@ -102,7 +102,7 @@ pub fn parse_doc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFuncti
 
         while (lines_it.next()) |line| {
             const trim = std.mem.trimLeft(u8, line, "/ *");
-            std.mem.copyForwards(u8, to.doc[actually_written..(actually_written + trim.len)], trim);
+            @memcpy(to.doc[actually_written..(actually_written + trim.len)], trim);
             actually_written += trim.len;
             if (trim.len != 0) {
                 to.doc[actually_written] = '\n';
@@ -129,7 +129,7 @@ pub fn parse_doc(alloc: std.mem.Allocator, block: []const u8, to: *ParsedCFuncti
                     to.exceptions = try alloc.realloc(to.exceptions, to.exceptions.len + 1);
                 }
                 to.exceptions[to.exceptions.len - 1] = try alloc.alloc(u8, token.len);
-                std.mem.copyForwards(u8, to.exceptions[to.exceptions.len - 1], token);
+                @memcpy(to.exceptions[to.exceptions.len - 1], token);
                 first = false;
             }
         } else {
@@ -158,7 +158,7 @@ pub fn sanitize_type(alloc: std.mem.Allocator, typ: []const u8) ![]u8 {
 
         const trim_tok = std.mem.trim(u8, tok, " \t,");
 
-        std.mem.copyForwards(u8, out[p..], trim_tok);
+        @memcpy(out[p..(p + trim_tok.len)], trim_tok);
         p += trim_tok.len;
         if (tokens.peek() != null) {
             out[p] = ' ';
@@ -187,7 +187,7 @@ pub fn parse_fnc_ret_and_name(alloc: std.mem.Allocator, block: []const u8, to: *
     to.rettype = try sanitize_type(alloc, block[0..last_space]);
     to.name = try alloc.alloc(u8, open_par - last_space - 1);
 
-    std.mem.copyForwards(u8, to.name, block[(last_space + 1)..open_par]);
+    @memcpy(to.name, block[(last_space + 1)..open_par]);
 
     // +1 because the args start without the parenthesis
     return open_par + 1;
@@ -221,12 +221,12 @@ pub fn parse_fnc_argument(alloc: std.mem.Allocator, block: []const u8, to: *Pars
         to.arg_types[to.arg_types.len - 1] = try sanitize_type(alloc, block[0 .. last_space + 2]);
         // And not in name
         to.arg_names[to.arg_names.len - 1] = try alloc.alloc(u8, end - last_space - 2);
-        std.mem.copyForwards(u8, to.arg_names[to.arg_names.len - 1], block[(last_space + 2)..end]);
+        @memcpy(to.arg_names[to.arg_names.len - 1], block[(last_space + 2)..end]);
     } else {
         to.arg_types[to.arg_types.len - 1] = try sanitize_type(alloc, block[0..last_space]);
         to.arg_names[to.arg_names.len - 1] = try alloc.alloc(u8, end - last_space - 1);
 
-        std.mem.copyForwards(u8, to.arg_names[to.arg_names.len - 1], block[(last_space + 1)..end]);
+        @memcpy(to.arg_names[to.arg_names.len - 1], block[(last_space + 1)..end]);
     }
     // +1 because the args start without the comma
     return end + 1;
