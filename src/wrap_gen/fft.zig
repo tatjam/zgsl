@@ -38,7 +38,7 @@ fn wrap_radix2(
     // Function invocation
     try fout.writeAll("const ret = c_gsl.");
     try fout.writeAll(fun.name);
-    try fout.writeAll("(@ptrCast(&data), stride, data.len);\n");
+    try fout.writeAll("(@ptrCast(data.ptr), stride, data.len);\n");
     // Error translation
     try fout.writeAll("switch(ret) {\n" ++
         "c_gsl.GSL_SUCCESS => return,\n" ++

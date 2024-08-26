@@ -5,4 +5,5 @@ const sf = @import("wrap/sf.zig");
 // All tests go here
 comptime {
     _ = @import("test/sf.zig");
+    _ = @import("test/fft.zig");
 }
