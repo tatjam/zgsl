@@ -111,9 +111,13 @@ pub fn build(b: *std.Build) void {
     lib_unit_tests.linkLibC();
     lib_unit_tests.linkLibrary(gsl_lib);
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
+    const test_bin = b.addInstallBinFile(lib_unit_tests.getEmittedBin(), "test");
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
+
+    const test_emit_step = b.step("test-emit", "Emit test-run binary");
+    test_emit_step.dependOn(&test_bin.step);
 
     // For ZLS quick error reporting
     const lib_check = b.addTest(.{

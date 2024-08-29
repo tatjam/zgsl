@@ -1,5 +1,6 @@
 pub const sf = @import("sf.zig");
 pub const fft = @import("fft.zig");
+pub const complex = @import("complex.zig");
 
 const gsl = @cImport(@cInclude("gsl/gsl_errno.h"));
 
