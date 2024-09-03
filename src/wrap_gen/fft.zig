@@ -42,7 +42,7 @@ fn wrap_radix2(
         if (kind == .Complex) {
             try fout.writeAll("[]cf32, ");
         } else if (kind == .HalfComplex) {
-            try fout.writeAll("[]f64, ");
+            try fout.writeAll("[]f32, ");
         } else if (kind == .Real) {
             try fout.writeAll("[]f32, ");
         }
@@ -74,7 +74,7 @@ fn wrap_radix2(
     // Error translation
     try fout.writeAll("switch(ret) {\n" ++
         "c_gsl.GSL_SUCCESS => return,\n" ++
-        "c_gsl.GSL_EDOM => return GslError.Domain,\n" ++
+        // "c_gsl.GSL_EDOM => return GslError.Domain,\n" ++ // (This is never genereated)
         "c_gsl.GSL_EINVAL => return GslError.InvalidValue,\n" ++
         "else => unreachable\n" ++
         "}\n");
@@ -88,10 +88,10 @@ pub fn wrap_fft(alloc: std.mem.Allocator, fout: std.fs.File, fun: parser.ParsedC
         if (std.mem.indexOf(u8, fun.name, "halfcomplex")) |_| true else false;
 
     var kind: FftKind = .Real;
-    if (is_complex) {
-        kind = .Complex;
-    } else if (is_halfcomplex) {
+    if (is_halfcomplex) {
         kind = .HalfComplex;
+    } else if (is_complex) {
+        kind = .Complex;
     }
 
     const is_float: bool =
