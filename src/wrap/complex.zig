@@ -5,9 +5,13 @@
 // Do note that we use the same operations as GSL for exactly the same results
 // in the cf types.
 const std = @import("std");
-const gsl = @cImport(@cInclude("gsl/gsl_complex.h"));
+const gsl = @cImport({
+    @cDefine("GSL_COMPLEX_LEGACY", "1");
+    @cInclude("gsl/gsl_complex.h");
+    @cInclude("gsl/gsl_complex_math.h");
+});
 
-fn make_cf(fT: type) type {
+pub fn make_cf(fT: type) type {
     return packed struct {
         re: fT,
         im: fT,
@@ -44,7 +48,7 @@ fn make_cf(fT: type) type {
                 u = reabs / imabs;
             }
 
-            return std.math.log(max) + 0.5 * std.math.log1p(u * u);
+            return std.math.log(fT, std.math.e, max) + 0.5 * std.math.log1p(u * u);
         }
         /// Does not modify a!
         pub fn add(a: @This(), b: @This()) @This() {
@@ -131,7 +135,23 @@ fn make_cf(fT: type) type {
             if (fT == f64) {
                 return @bitCast(a);
             }
-            return cast_gsl(cast64(a));
+            return cf64.cast_gsl(cast64(a));
+        }
+
+        pub fn from_gsl(g: gsl.gsl_complex) @This() {
+            if (fT == f64) {
+                return @bitCast(g);
+            }
+            return cf64.cast32(@as(cf64, @bitCast(g)));
+        }
+
+        // TODO: All of these are broken, see Zig issue #21245
+        pub fn sqrt(a: @This()) @This() {
+            const as_gsl = cast_gsl(a);
+            const ret = gsl.gsl_complex_sqrt(as_gsl);
+            const back = from_gsl(ret);
+            return back;
+            //return from_gsl(gsl.gsl_complex_sqrt(cast_gsl(a)));
         }
     };
 }

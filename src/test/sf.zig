@@ -7,18 +7,18 @@ fn over_all_functions_filtered(
     action: anytype,
     userdata: anytype,
 ) void {
-    const sft = @typeInfo(str).Struct;
+    const sft = @typeInfo(str).@"struct";
 
     inline for (sft.decls) |decl| {
         const field = @TypeOf(@field(str, decl.name));
         switch (@typeInfo(field)) {
-            .Struct => over_all_functions_filtered(
+            .@"struct" => over_all_functions_filtered(
                 field,
                 filter,
                 action,
                 userdata,
             ),
-            .Fn => |info| if (filter(info)) {
+            .@"fn" => |info| if (filter(info)) {
                 action(@field(str, decl.name), userdata);
             },
             else => continue, // Ignore all non functions
@@ -34,7 +34,7 @@ inline fn has_error_return(f: std.builtin.Type.Fn) bool {
     if (f.return_type) |ret| {
         const ret_info = @typeInfo(ret);
         switch (ret_info) {
-            .ErrorUnion => return true,
+            .error_union => return true,
             else => return false,
         }
     }

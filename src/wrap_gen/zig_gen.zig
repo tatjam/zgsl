@@ -58,14 +58,14 @@ pub const FunctionConfig = struct {
 };
 
 pub fn set_exceptions(fun: *FunctionConfig, val: bool) void {
-    const tinfo = comptime @typeInfo(ExceptionsPossible).Struct;
+    const tinfo = comptime @typeInfo(ExceptionsPossible).@"struct";
     inline for (tinfo.fields) |field| {
         @field(fun.exceptions, field.name) = val;
     }
 }
 
 pub fn all_set(fun: FunctionConfig) bool {
-    const tinfo = comptime @typeInfo(ExceptionsPossible).Struct;
+    const tinfo = comptime @typeInfo(ExceptionsPossible).@"struct";
     inline for (tinfo.fields) |field| {
         if (!@field(fun.exceptions, field.name)) {
             return false;

@@ -34,7 +34,7 @@ pub fn main() !void {
         \\  #define HAVE_C99_INLINE 1
         \\  #define HAVE_INLINE 1
         \\  #define GSL_COMPLEX_LEGACY 1
-        \\  #define HAVE_COMPLEX_H 1
+        \\  #define HAVE_COMPLEX_H 0
         \\  #define HAVE_DECL_ACOSH 1
         \\  #define HAVE_DECL_ASINH 1
         \\  #define HAVE_DECL_ATANH 1
