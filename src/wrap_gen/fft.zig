@@ -58,13 +58,17 @@ fn wrap_radix2(
     if (sign) {
         try fout.writeAll("stride: usize, dir: FftDirection) error{Domain, InvalidValue}!void {\n");
     } else {
-        try fout.writeAll("stride: usize) error{Domain, InvalidValue}!void {\n");
+        try fout.writeAll("stride: usize) error{InvalidValue}!void {\n");
     }
+    // Stride contract: in essence it must not be 0
+    // (This is an error for consistency)
+    try fout.writeAll("if (stride == 0) { return error.InvalidValue; } \n");
+
     // Function invocation
     try fout.writeAll("const ret = c_gsl.");
     try fout.writeAll(fun.name);
     // data.len is correct on complex, because we use the complex type!
-    try fout.writeAll("(@ptrCast(data.ptr), stride, data.len, ");
+    try fout.writeAll("(@ptrCast(data.ptr), stride, data.len / stride, ");
 
     if (sign) {
         try fout.writeAll("@intFromEnum(dir));\n");
